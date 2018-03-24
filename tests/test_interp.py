@@ -1,5 +1,5 @@
 import pytest
-import ../propagation as prop
+from scatter import propagation
 
 def test_interp():
     assert 1==1
