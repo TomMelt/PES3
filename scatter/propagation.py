@@ -10,10 +10,12 @@ import sys
 
 
 # TODO:
-# - convert mass to atomic units
-# - add Vppp(R1,R2,y) potential
-# - take numerical derivative (dVdr) on grid
+# - debug the potential
+# - check numerical derivative
 # - plot Vppp and dVppp in matplotlib
+# - equations of motion need double checking
+
+# NOTE:
 # - currently code uses r, R and cos(gamma)
 # - would need to change if gamma is needed
 
@@ -43,10 +45,6 @@ def testGridData():
             R2,
             cosGamma
             )
-    print(PES.shape)
-    print(dVdR1.shape)
-    print(dVdR2.shape)
-    print(dVdcosGamma.shape)
 
     interpdVdR1 = interpolate.RegularGridInterpolator(
             (R1, R2, cosGamma),
@@ -62,10 +60,42 @@ def testGridData():
             )
 
     fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
-#    ax.set_xlabel('R1')
-#    ax.set_ylabel('R2')
-#    ax.set_zlabel('Z')
+    # V(R1,R2) wire plot
+    ax = fig.add_subplot(131, projection='3d')
+    R1grid, R2grid = np.meshgrid(R1, R2)
+    ax.set_xlim(0, 10)
+    ax.set_ylim(0, 10)
+    ax.set_zlim(-5, 1)
+    ax.set_xlabel('R1')
+    ax.set_ylabel('R2')
+    ax.set_zlabel(f'V(R1,R2,cosGamma={np.round(cosGamma[49],2)})')
+    stride=3
+    ax.plot_wireframe(R1grid, R2grid, PES[:,:,49], rstride=stride, cstride=stride)
+    # V(R1,cosGamma) wire plot
+    ax = fig.add_subplot(132, projection='3d')
+    R1grid, cosGammagrid = np.meshgrid(R1, cosGamma)
+    ax.set_xlim(0, 10)
+    ax.set_ylim(-1, 1)
+    ax.set_zlim(-5, 1)
+    ax.set_xlabel('R1')
+    ax.set_ylabel('cosGamma')
+    ax.set_zlabel(f'V(R1,R2={np.round(R2[20],2)},cosGamma)')
+    stride=1
+    ax.plot_wireframe(R1grid, cosGammagrid, PES[:,20,:], rstride=stride, cstride=stride)
+    # V(R2,cosGamma) wire plot
+    ax = fig.add_subplot(133, projection='3d')
+    R2grid, cosGamma = np.meshgrid(R2, cosGamma)
+    ax.set_xlim(-1, 1)
+    ax.set_ylim(0, 10)
+    ax.set_zlim(-5, 1)
+    ax.set_xlabel('cosGamma')
+    ax.set_ylabel('R2')
+    ax.set_zlabel(f'V(R1={np.round(R1[0],2)},R2,cosGamma)')
+    stride=3
+    ax.plot_wireframe(cosGammagrid, R2grid, PES[0,:,:], rstride=stride, cstride=stride)
+    plt.show()
+    quit()
+
     ri, Ri, cosGammai = np.linspace(1.,4.,200), np.linspace(1., 5., 200), np.linspace(-1.,1.,200)
     grid_ri, grid_Ri, grid_cosGammai = np.meshgrid(ri, Ri, cosGammai)
     print(analyticPotential(grid_Ri, grid_ri, grid_cosGammai).shape)
@@ -86,11 +116,10 @@ def testGridData():
 
 
 def analyticPotential(R1, R2, cosGamma):
-    alpha = 0.0001
-    d1 = np.sqrt(R1*R1-R1*R2*cosGamma+0.25*R2*R2)+alpha
-    print(d1)
-    d2 = np.sqrt(R1*R1+R1*R2*cosGamma+0.25*R2*R2)+alpha
-    V = Q2*Q3/(R2+alpha) - Q1*Q2/d1 - Q1*Q3/d2
+    a=1e-6
+    d1 = np.sqrt(np.abs(R1*R1-R1*R2*cosGamma+0.25*R2*R2))
+    d2 = np.sqrt(np.abs(R1*R1+R1*R2*cosGamma+0.25*R2*R2))
+    V = Q2*Q3/(R2+a) + Q1*Q2/(d1+a) + Q1*Q3/(d2+a)
     return V
 
 
@@ -120,7 +149,7 @@ def equation_of_motion(
     R1dot = P1/MU_1
     R2dot = P2/MU_2
     P1dot = -dVdx(R1, R2, interpdVdR1, interpdVdcosGamma)
-    P2dot = -dVdx(R2, R1, interpdVdR2, interpdVdcosGamma)
+    P2dot = dVdx(R2, R1, interpdVdR2, interpdVdcosGamma)
     return np.concatenate((R1dot, P1dot, R2dot, P2dot), axis=0)
 
 
