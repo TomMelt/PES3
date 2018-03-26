@@ -1,8 +1,8 @@
 import numpy as np
 from numpy.linalg import norm
 from scipy.constants import codata
+from scipy.special import legendre
 import scipy.integrate as odeint
-import scipy.interpolate as interpolate
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import sys
@@ -29,202 +29,117 @@ m_e = codata.value('electron mass in u')
 conversion = 1./m_e
 MU_1 = 0.671606*conversion
 MU_2 = 0.503805*conversion
-Q1 = -1.
-Q2 = 1.
-Q3 = 1.
 
 
-def testGridData():
-    N = 100
-    R1 = np.linspace(0., 10., N)
-    R2 = np.linspace(1., 10., N)
-    cosGamma = np.linspace(-1., 1., N)
-    PES, dVdR1, dVdR2, dVdcosGamma = initialisePESandDerivatives(
-            analyticPotential,
-            R1,
-            R2,
-            cosGamma
-            )
-
-    interpdVdR1 = interpolate.RegularGridInterpolator(
-            (R1, R2, cosGamma),
-            dVdR1
-            )
-    interpdVdR2 = interpolate.RegularGridInterpolator(
-            (R1,R2, cosGamma),
-            dVdR2
-            )
-    interpdVdcosGamma = interpolate.RegularGridInterpolator(
-            (R1, R2, cosGamma),
-            dVdcosGamma
-            )
-
-    fig = plt.figure()
-    # V(R1,R2) wire plot
-    ax = fig.add_subplot(131, projection='3d')
-    R1grid, R2grid = np.meshgrid(R1, R2)
-    ax.set_xlim(0, 10)
-    ax.set_ylim(0, 10)
-    ax.set_zlim(-5, 1)
-    ax.set_xlabel('R1')
-    ax.set_ylabel('R2')
-    ax.set_zlabel(f'V(R1,R2,cosGamma={np.round(cosGamma[49],2)})')
-    stride=3
-    ax.plot_wireframe(R1grid, R2grid, PES[:,:,49], rstride=stride, cstride=stride)
-    # V(R1,cosGamma) wire plot
-    ax = fig.add_subplot(132, projection='3d')
-    R1grid, cosGammagrid = np.meshgrid(R1, cosGamma)
-    ax.set_xlim(0, 10)
-    ax.set_ylim(-1, 1)
-    ax.set_zlim(-5, 1)
-    ax.set_xlabel('R1')
-    ax.set_ylabel('cosGamma')
-    ax.set_zlabel(f'V(R1,R2={np.round(R2[20],2)},cosGamma)')
-    stride=1
-    ax.plot_wireframe(R1grid, cosGammagrid, PES[:,20,:], rstride=stride, cstride=stride)
-    # V(R2,cosGamma) wire plot
-    ax = fig.add_subplot(133, projection='3d')
-    R2grid, cosGamma = np.meshgrid(R2, cosGamma)
-    ax.set_xlim(-1, 1)
-    ax.set_ylim(0, 10)
-    ax.set_zlim(-5, 1)
-    ax.set_xlabel('cosGamma')
-    ax.set_ylabel('R2')
-    ax.set_zlabel(f'V(R1={np.round(R1[0],2)},R2,cosGamma)')
-    stride=3
-    ax.plot_wireframe(cosGammagrid, R2grid, PES[0,:,:], rstride=stride, cstride=stride)
-    plt.show()
-    quit()
-
-    ri, Ri, cosGammai = np.linspace(1.,4.,200), np.linspace(1., 5., 200), np.linspace(-1.,1.,200)
-    grid_ri, grid_Ri, grid_cosGammai = np.meshgrid(ri, Ri, cosGammai)
-    print(analyticPotential(grid_Ri, grid_ri, grid_cosGammai).shape)
-    ax.plot_wireframe(grid_Ri, grid_ri, analyticPotential(grid_Ri, grid_ri, grid_cosGamma), rstride=10, cstride=10)
-    quit()
-    Z = interp((grid_Ri, grid_ri))
-    ax.plot_wireframe(grid_Ri, grid_ri, Z, rstride=3, cstride=3, color='k')
-    dZ = np.gradient(potentialGrid,R,r)
-    dZdR = np.array(dZ[0])
-    dZdr = np.array(dZ[1])
-    ax = fig.add_subplot(132, projection='3d')
-    ax.plot_wireframe(grid_R, grid_r, dZdR, rstride=10, cstride=10, color='r')
-    ax.plot_wireframe(grid_R, grid_r, np.cos(grid_R), rstride=10, cstride=10, color='k')
-    ax = fig.add_subplot(133, projection='3d')
-    ax.plot_wireframe(grid_R, grid_r, dZdr, rstride=9, cstride=9, color='r')
-    ax.plot_wireframe(grid_R, grid_r, -np.sin(grid_r), rstride=10, cstride=10, color='k')
-    plt.show()
-
-
-def analyticPotential(R1, R2, cosGamma):
-    a=1e-6
-    d1 = np.sqrt(np.abs(R1*R1-R1*R2*cosGamma+0.25*R2*R2))
-    d2 = np.sqrt(np.abs(R1*R1+R1*R2*cosGamma+0.25*R2*R2))
-    V = Q2*Q3/(R2+a) + Q1*Q2/(d1+a) + Q1*Q3/(d2+a)
+def potential(r, R, cosGamma):
+    alpha = 2.027
+    beta = 0.375
+    C = 17.283
+    p2 = legendre(2)
+    V = C*np.exp(-alpha*R)*(1.+beta*p2(cosGamma))
     return V
 
 
-def dVdx(x, y, interpdVdx, interpdVdcosGamma):
-    d1 = norm(x)
-    d2 = norm(y)
-    cosGamma = (x @ y)/(d1*d2)
-    position = np.array([d1, d2, cosGamma])
-    dVdx = interpdVdx(position)
-    dxdx = x/d1
-    dVdcosGamma = interpdVdcosGamma(position)
-    dcosGammadx = 1./(d2*d1*d1*d1)*(d1*d1*y - (x @ y)*x)
-    return dVdx*dxdx+dVdcosGamma*dcosGammadx
+def derivative(func, x, h=1e-8):
+    return 0.5*(func(x-h)-func(x+h))/h
 
 
-def equation_of_motion(
-        t,
-        coordinates,
-        interpdVdR1,
-        interpdVdR2,
-        interpdVdcosGamma
-        ):
+def equation_of_motion(t, coordinates):
     # current jacobi coordinates
-    R1, P1, R2, P2 = getJacobiCoordinates(coordinates)
+    r, p, R, P = getJacobiCoordinates(coordinates)
+
+    rmag = norm(r)
+    Rmag = norm(R)
+    cosGamma = (r @ R)/(rmag * Rmag)
 
     # first derivatives w.r.t. t
-    R1dot = P1/MU_1
-    R2dot = P2/MU_2
-    P1dot = -dVdx(R1, R2, interpdVdR1, interpdVdcosGamma)
-    P2dot = dVdx(R2, R1, interpdVdR2, interpdVdcosGamma)
-    return np.concatenate((R1dot, P1dot, R2dot, P2dot), axis=0)
+    rdot = p/MU_1
+    Rdot = P/MU_2
+    dVdr = derivative(lambda x: potential(x, Rmag, cosGamma), rmag)
+    dVdR = derivative(lambda x: potential(rmag, x, cosGamma), Rmag)
+    dVdcosGamma = derivative(lambda x: potential(rmag, Rmag, x), cosGamma)
+    dcosGammadr = (rmag/Rmag*R - cosGamma*r)/(Rmag*Rmag)
+    dcosGammadR = (Rmag/rmag*r - cosGamma*R)/(rmag*rmag)
+    pdot = dVdr*r/rmag + dVdcosGamma*dcosGammadr
+    Pdot = dVdR*R/Rmag + dVdcosGamma*dcosGammadR
+
+    return np.concatenate((rdot, pdot, Rdot, Pdot), axis=0)
 
 
 def getJacobiCoordinates(coordinates):
-    R1 = coordinates[:3]
-    P1 = coordinates[3:6]
-    R2 = coordinates[6:9]
-    P2 = coordinates[9:]
+    r = coordinates[:3]
+    p = coordinates[3:6]
+    R = coordinates[6:9]
+    P = coordinates[9:]
 
-    return R1, P1, R2, P2
+    return r, p, R, P
 
 
-def getParticleCoordinates(R1, P1, R2, P2):
-    r1 = -0.5*R2
-    r2 = 0.5*R2
-    r3 = R1
+def getParticleCoordinates(r, p, R, P):
+    r1 = -0.5*r
+    r2 = 0.5*r
+    r3 = R
 
     return r1, r2, r3
 
 
-def initialisePESandDerivatives(potential, R1, R2, cosGamma):
-    grid_R1, grid_R2, grid_cosGamma = np.meshgrid(R1, R2, cosGamma)
-    grid_PES = potential(grid_R1, grid_R2, cosGamma)
-    dV = np.gradient(grid_PES, R1, R2, cosGamma)
-    return grid_PES, dV[0], dV[1], dV[2]
+def testDeriv():
+    N = 100
+    r = np.linspace(0, 10, N)
+    R = np.linspace(0.5, 10, N)
+    cosGamma = np.linspace(-1, 1, N)
+    grid_r, grid_R, grid_cosGamma = np.meshgrid(r, R, cosGamma)
+    grid_Pot = potential(grid_r, grid_R, cosGamma)
+    fig = plt.figure()
+    stride = 1
+    dVdr = derivative(lambda x: potential(x, grid_R, grid_cosGamma), grid_r)
+    ax = fig.add_subplot(131, projection='3d')
+    ax.plot_wireframe(
+            grid_r[:, :, 0],
+            grid_R[:, :, 0],
+            dVdr[:, :, 0],
+            rstride=stride,
+            cstride=stride
+            )
+    dVdR = derivative(lambda x: potential(grid_r, x, grid_cosGamma), grid_R)
+    ax = fig.add_subplot(132, projection='3d')
+    ax.plot_wireframe(
+            grid_r[:, :, 0],
+            grid_R[:, :, 0],
+            dVdR[:, :, 0],
+            rstride=stride,
+            cstride=stride
+            )
+    dVdcosGamma = derivative(lambda x: potential(grid_r, grid_R, x), grid_cosGamma)
+    ax = fig.add_subplot(133, projection='3d')
+    ax.plot_wireframe(
+            grid_cosGamma[:, 0, :],
+            grid_R[:, 0, :],
+            dVdcosGamma[:, 0, :],
+            rstride=stride,
+            cstride=stride
+            )
+    plt.show()
+    quit()
 
 
 def main(args):
-    testGridData()
-    # initialise PES
-    N = 100
-    R1 = np.linspace(0.0, 100., N)
-    R2 = np.linspace(0.0, 100., N)
-    cosGamma = np.linspace(-1., 1., N)
-    PES, dVdR1, dVdR2, dVdcosGamma = initialisePESandDerivatives(
-            analyticPotential,
-            R1,
-            R2,
-            cosGamma
-            )
-
-    # initialise interp for dVdx (x=R1, R2, cosGamma)
-    interpdVdR1 = interpolate.RegularGridInterpolator(
-            (R1, R2, cosGamma),
-            dVdR1
-            )
-    interpdVdR2 = interpolate.RegularGridInterpolator(
-            (R1, R2, cosGamma),
-            dVdR2
-            )
-    interpdVdcosGamma = interpolate.RegularGridInterpolator(
-            (R1, R2, cosGamma),
-            dVdcosGamma
-            )
+    testDeriv()
 
     # time range
     ts = 0.
-    tf = 1000.
+    tf = 100000.
 
     # initial conditions of the scattering particles
-    R1 = np.array([0., 0., 5.], dtype=float)
-    R2 = np.array([1., 0., 0.], dtype=float)
-    P1 = np.array([0., 0., 0.], dtype=float)
-    P2 = np.array([0., 0., 0.], dtype=float)
-    initialConditions = np.concatenate((R1, P1, R2, P2), axis=0)
+    r = np.array([2., 0., 0.], dtype=float)
+    p = np.array([0., 0., 0.], dtype=float)
+    R = np.array([-1., 0., 5.], dtype=float)
+    P = np.array([0., 0., -10.], dtype=float)
+    initialConditions = np.concatenate((r, p, R, P), axis=0)
 
     # initialise stepping object
     stepper = odeint.RK45(
-            lambda t, y: equation_of_motion(
-                t,
-                y,
-                interpdVdR1,
-                interpdVdR2,
-                interpdVdcosGamma,
-                ),
+            lambda t, y: equation_of_motion(t, y),
             ts,
             initialConditions,
             tf,
