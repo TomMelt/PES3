@@ -18,6 +18,7 @@ import sys
 # NOTE:
 # - currently code uses r, R and cos(gamma)
 # - would need to change if gamma is needed
+# - checked derivatives (numeric vs analytic)
 
 
 # constants taken from NIST (in u)
@@ -41,27 +42,60 @@ def potential(r, R, cosGamma):
 
 
 def derivative(func, x, h=1e-8):
-    return 0.5*(func(x-h)-func(x+h))/h
+    return 0.5*(func(x+h)-func(x-h))/h
 
 
-def equation_of_motion(t, coordinates):
-    # current jacobi coordinates
-    r, p, R, P = getJacobiCoordinates(coordinates)
-
+def numericDerivatives(r, R):
     rmag = norm(r)
     Rmag = norm(R)
     cosGamma = (r @ R)/(rmag * Rmag)
 
-    # first derivatives w.r.t. t
-    rdot = p/MU_1
-    Rdot = P/MU_2
     dVdr = derivative(lambda x: potential(x, Rmag, cosGamma), rmag)
     dVdR = derivative(lambda x: potential(rmag, x, cosGamma), Rmag)
     dVdcosGamma = derivative(lambda x: potential(rmag, Rmag, x), cosGamma)
     dcosGammadr = (rmag/Rmag*R - cosGamma*r)/(Rmag*Rmag)
     dcosGammadR = (Rmag/rmag*r - cosGamma*R)/(rmag*rmag)
-    pdot = dVdr*r/rmag + dVdcosGamma*dcosGammadr
-    Pdot = dVdR*R/Rmag + dVdcosGamma*dcosGammadR
+    pdot = -dVdr*r/rmag - dVdcosGamma*dcosGammadr
+    Pdot = -dVdR*R/Rmag - dVdcosGamma*dcosGammadR
+
+    return pdot, Pdot
+
+def analyticDerivatives(r, R):
+    alpha = 2.027
+    beta = 0.375
+    C = 17.283
+
+    rmag = norm(r)
+    Rmag = norm(R)
+    cosGamma = (r @ R)/(rmag * Rmag)
+
+    Runit = R/Rmag
+
+    dVdR = -alpha*potential(rmag, Rmag, cosGamma)
+    dVdcosGamma = 3.*beta*C*np.exp(-alpha*Rmag)*cosGamma
+    dcosGammadr = (rmag/Rmag*R - cosGamma*r)/(Rmag*Rmag)
+    dcosGammadR = (Rmag/rmag*r - cosGamma*R)/(rmag*rmag)
+
+    pdot = -dVdcosGamma*dcosGammadr
+    Pdot = -dVdR*Runit -dVdcosGamma*dcosGammadR
+    return pdot, Pdot
+
+
+def equation_of_motion(t, coordinates, numeric=True):
+    # current jacobi coordinates
+    r, p, R, P = getJacobiCoordinates(coordinates)
+
+    # first derivatives w.r.t. t
+    rdot = p/MU_1
+    Rdot = P/MU_2
+
+    if numeric:
+        pdot, Pdot = numericDerivatives(r, R)
+        ana1, ana2 = analyticDerivatives(r, R)
+#        print('pdot-analytic=', pdot-ana1)
+#        print('Pdot-analytic=', Pdot-ana2)
+    else:
+        pdot, Pdot = analyticDerivatives(r, R)
 
     return np.concatenate((rdot, pdot, Rdot, Pdot), axis=0)
 
@@ -92,7 +126,14 @@ def testDeriv():
     grid_Pot = potential(grid_r, grid_R, cosGamma)
     fig = plt.figure()
     stride = 1
+    strideAna = 5
+
+    alpha = 2.027
+    beta = 0.375
+    C = 17.283
+
     dVdr = derivative(lambda x: potential(x, grid_R, grid_cosGamma), grid_r)
+    dVdrAnalytic = np.zeros(dVdr.shape)
     ax = fig.add_subplot(131, projection='3d')
     ax.plot_wireframe(
             grid_r[:, :, 0],
@@ -101,7 +142,16 @@ def testDeriv():
             rstride=stride,
             cstride=stride
             )
+    ax.plot_wireframe(
+            grid_r[:, :, 0],
+            grid_R[:, :, 0],
+            dVdrAnalytic[:, :, 0],
+            rstride=strideAna,
+            cstride=strideAna,
+            color='r'
+            )
     dVdR = derivative(lambda x: potential(grid_r, x, grid_cosGamma), grid_R)
+    dVdRAnalytic = -alpha*potential(grid_r, grid_R, grid_cosGamma)
     ax = fig.add_subplot(132, projection='3d')
     ax.plot_wireframe(
             grid_r[:, :, 0],
@@ -110,7 +160,16 @@ def testDeriv():
             rstride=stride,
             cstride=stride
             )
+    ax.plot_wireframe(
+            grid_r[:, :, 0],
+            grid_R[:, :, 0],
+            dVdRAnalytic[:, :, 0],
+            rstride=strideAna,
+            cstride=strideAna,
+            color='r'
+            )
     dVdcosGamma = derivative(lambda x: potential(grid_r, grid_R, x), grid_cosGamma)
+    dVdcosGammaAnalytic = 3.*beta*C*np.exp(-alpha*grid_R)*grid_cosGamma
     ax = fig.add_subplot(133, projection='3d')
     ax.plot_wireframe(
             grid_cosGamma[:, 0, :],
@@ -119,12 +178,21 @@ def testDeriv():
             rstride=stride,
             cstride=stride
             )
+    ax.plot_wireframe(
+            grid_cosGamma[:, 0, :],
+            grid_R[:, 0, :],
+            dVdcosGammaAnalytic[:, 0, :],
+            rstride=strideAna,
+            cstride=strideAna,
+            color='r'
+            )
+    plt.legend(['numeric','analytic'])
     plt.show()
-    quit()
+    return
 
 
 def main(args):
-    testDeriv()
+#    testDeriv()
 
     # time range
     ts = 0.
@@ -133,13 +201,13 @@ def main(args):
     # initial conditions of the scattering particles
     r = np.array([2., 0., 0.], dtype=float)
     p = np.array([0., 0., 0.], dtype=float)
-    R = np.array([-1., 0., 5.], dtype=float)
+    R = np.array([0., 0., 3.], dtype=float)
     P = np.array([0., 0., -10.], dtype=float)
     initialConditions = np.concatenate((r, p, R, P), axis=0)
 
     # initialise stepping object
     stepper = odeint.RK45(
-            lambda t, y: equation_of_motion(t, y),
+            lambda t, y: equation_of_motion(t, y, numeric=True),
             ts,
             initialConditions,
             tf,
