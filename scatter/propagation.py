@@ -53,8 +53,8 @@ def numericDerivatives(r, R):
     dVdr = derivative(lambda x: potential(x, Rmag, cosGamma), rmag)
     dVdR = derivative(lambda x: potential(rmag, x, cosGamma), Rmag)
     dVdcosGamma = derivative(lambda x: potential(rmag, Rmag, x), cosGamma)
-    dcosGammadr = (rmag/Rmag*R - cosGamma*r)/(Rmag*Rmag)
-    dcosGammadR = (Rmag/rmag*r - cosGamma*R)/(rmag*rmag)
+    dcosGammadr = (rmag/Rmag*R - cosGamma*r)/(rmag*rmag)
+    dcosGammadR = (Rmag/rmag*r - cosGamma*R)/(Rmag*Rmag)
     pdot = -dVdr*r/rmag - dVdcosGamma*dcosGammadr
     Pdot = -dVdR*R/Rmag - dVdcosGamma*dcosGammadR
 
@@ -73,8 +73,8 @@ def analyticDerivatives(r, R):
 
     dVdR = -alpha*potential(rmag, Rmag, cosGamma)
     dVdcosGamma = 3.*beta*C*np.exp(-alpha*Rmag)*cosGamma
-    dcosGammadr = (rmag/Rmag*R - cosGamma*r)/(Rmag*Rmag)
-    dcosGammadR = (Rmag/rmag*r - cosGamma*R)/(rmag*rmag)
+    dcosGammadr = (rmag/Rmag*R - cosGamma*r)/(rmag*rmag)
+    dcosGammadR = (Rmag/rmag*r - cosGamma*R)/(Rmag*Rmag)
 
     pdot = -dVdcosGamma*dcosGammadr
     Pdot = -dVdR*Runit -dVdcosGamma*dcosGammadR
@@ -201,7 +201,7 @@ def main(args):
     # initial conditions of the scattering particles
     r = np.array([2., 0., 0.], dtype=float)
     p = np.array([0., 0., 0.], dtype=float)
-    R = np.array([0., 0., 3.], dtype=float)
+    R = np.array([-1., 0., 3.], dtype=float)
     P = np.array([0., 0., -10.], dtype=float)
     initialConditions = np.concatenate((r, p, R, P), axis=0)
 
