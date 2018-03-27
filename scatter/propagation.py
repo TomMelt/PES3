@@ -37,7 +37,7 @@ def potential(r, R, gamma):
     beta = 0.375
     C = 17.283
     p2 = legendre(2)
-    V = C*np.exp(-alpha*R)*(1.+beta*p2(cos(gamma)))
+    V = C*np.exp(-alpha*R)*(1.+beta*p2(np.cos(gamma)))
     return V
 
 
@@ -54,12 +54,13 @@ def numericDerivatives(r, R):
     dVdr = derivative(lambda x: potential(x, Rmag, gamma), rmag)
     dVdR = derivative(lambda x: potential(rmag, x, gamma), Rmag)
     dVdgamma = derivative(lambda x: potential(rmag, Rmag, x), gamma)
-    dgammadr = -(rmag/Rmag*R - cosGamma*r)/(rmag*rmag*np.sqrt(1-gamma*gamma))
-    dgammadR = -(Rmag/rmag*r - cosGamma*R)/(Rmag*Rmag*np.sqrt(1-gamma*gamma))
+    dgammadr = -(rmag/Rmag*R - cosGamma*r)/(rmag*rmag*np.sqrt(np.abs(1-gamma*gamma)))
+    dgammadR = -(Rmag/rmag*r - cosGamma*R)/(Rmag*Rmag*np.sqrt(np.abs(1-gamma*gamma)))
     pdot = -dVdr*r/rmag - dVdgamma*dgammadr
     Pdot = -dVdR*R/Rmag - dVdgamma*dgammadR
 
     return pdot, Pdot
+
 
 def analyticDerivatives(r, R):
     alpha = 2.027
@@ -69,16 +70,17 @@ def analyticDerivatives(r, R):
     rmag = norm(r)
     Rmag = norm(R)
     cosGamma = (r @ R)/(rmag * Rmag)
+    gamma = np.arccos(cosGamma)
 
     Runit = R/Rmag
 
-    dVdR = -alpha*potential(rmag, Rmag, cosGamma)
-    dVdcosGamma = 3.*beta*C*np.exp(-alpha*Rmag)*cosGamma
-    dcosGammadr = (rmag/Rmag*R - cosGamma*r)/(Rmag*Rmag)
-    dcosGammadR = (Rmag/rmag*r - cosGamma*R)/(rmag*rmag)
+    dVdR = -alpha*potential(rmag, Rmag, gamma)
+    dVdgamma = -3.*beta*C*np.exp(-alpha*R)*np.cos(gamma)*np.sin(gamma)
+    dgammadr = -(rmag/Rmag*R - cosGamma*r)/(rmag*rmag*np.sqrt(np.abs(1-gamma*gamma)))
+    dgammadR = -(Rmag/rmag*r - cosGamma*R)/(Rmag*Rmag*np.sqrt(np.abs(1-gamma*gamma)))
 
-    pdot = -dVdcosGamma*dcosGammadr
-    Pdot = -dVdR*Runit -dVdcosGamma*dcosGammadR
+    pdot = -dVdgamma*dgammadr
+    Pdot = -dVdR*Runit - dVdgamma*dgammadR
     return pdot, Pdot
 
 
@@ -122,9 +124,9 @@ def testDeriv():
     N = 100
     r = np.linspace(0, 10, N)
     R = np.linspace(0.5, 10, N)
-    cosGamma = np.linspace(-1, 1, N)
-    grid_r, grid_R, grid_cosGamma = np.meshgrid(r, R, cosGamma)
-    grid_Pot = potential(grid_r, grid_R, cosGamma)
+    gamma = np.linspace(-np.pi, np.pi, N)
+    grid_r, grid_R, grid_gamma = np.meshgrid(r, R, gamma)
+#    grid_Pot = potential(grid_r, grid_R, gamma)
     fig = plt.figure()
     stride = 1
     strideAna = 5
@@ -133,7 +135,7 @@ def testDeriv():
     beta = 0.375
     C = 17.283
 
-    dVdr = derivative(lambda x: potential(x, grid_R, grid_cosGamma), grid_r)
+    dVdr = derivative(lambda x: potential(x, grid_R, grid_gamma), grid_r)
     dVdrAnalytic = np.zeros(dVdr.shape)
     ax = fig.add_subplot(131, projection='3d')
     ax.plot_wireframe(
@@ -151,8 +153,8 @@ def testDeriv():
             cstride=strideAna,
             color='r'
             )
-    dVdR = derivative(lambda x: potential(grid_r, x, grid_cosGamma), grid_R)
-    dVdRAnalytic = -alpha*potential(grid_r, grid_R, grid_cosGamma)
+    dVdR = derivative(lambda x: potential(grid_r, x, grid_gamma), grid_R)
+    dVdRAnalytic = -alpha*potential(grid_r, grid_R, grid_gamma)
     ax = fig.add_subplot(132, projection='3d')
     ax.plot_wireframe(
             grid_r[:, :, 0],
@@ -169,26 +171,27 @@ def testDeriv():
             cstride=strideAna,
             color='r'
             )
-    dVdcosGamma = derivative(lambda x: potential(grid_r, grid_R, x), grid_cosGamma)
-    dVdcosGammaAnalytic = 3.*beta*C*np.exp(-alpha*grid_R)*grid_cosGamma
+    dVdgamma = derivative(lambda x: potential(grid_r, grid_R, x), grid_gamma)
+    dVdgammaAnalytic = -3.*beta*C*np.exp(-alpha*grid_R)*np.cos(grid_gamma)*np.sin(grid_gamma)
     ax = fig.add_subplot(133, projection='3d')
     ax.plot_wireframe(
-            grid_cosGamma[:, 0, :],
+            grid_gamma[:, 0, :],
             grid_R[:, 0, :],
-            dVdcosGamma[:, 0, :],
+            dVdgamma[:, 0, :],
             rstride=stride,
             cstride=stride
             )
     ax.plot_wireframe(
-            grid_cosGamma[:, 0, :],
+            grid_gamma[:, 0, :],
             grid_R[:, 0, :],
-            dVdcosGammaAnalytic[:, 0, :],
+            dVdgammaAnalytic[:, 0, :],
             rstride=strideAna,
             cstride=strideAna,
             color='r'
             )
-    plt.legend(['numeric','analytic'])
+    plt.legend(['numeric', 'analytic'])
     plt.show()
+    quit()
     return
 
 
@@ -202,7 +205,7 @@ def main(args):
     # initial conditions of the scattering particles
     r = np.array([2., 0., 0.], dtype=float)
     p = np.array([0., 0., 0.], dtype=float)
-    R = np.array([0., 0., 3.], dtype=float)
+    R = np.array([1., 0., 3.], dtype=float)
     P = np.array([0., 0., -10.], dtype=float)
     initialConditions = np.concatenate((r, p, R, P), axis=0)
 
