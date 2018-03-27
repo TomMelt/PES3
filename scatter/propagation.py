@@ -32,12 +32,12 @@ MU_1 = 0.671606*conversion
 MU_2 = 0.503805*conversion
 
 
-def potential(r, R, cosGamma):
+def potential(r, R, gamma):
     alpha = 2.027
     beta = 0.375
     C = 17.283
     p2 = legendre(2)
-    V = C*np.exp(-alpha*R)*(1.+beta*p2(cosGamma))
+    V = C*np.exp(-alpha*R)*(1.+beta*p2(cos(gamma)))
     return V
 
 
@@ -49,14 +49,15 @@ def numericDerivatives(r, R):
     rmag = norm(r)
     Rmag = norm(R)
     cosGamma = (r @ R)/(rmag * Rmag)
+    gamma = np.arccos(cosGamma)
 
-    dVdr = derivative(lambda x: potential(x, Rmag, cosGamma), rmag)
-    dVdR = derivative(lambda x: potential(rmag, x, cosGamma), Rmag)
-    dVdcosGamma = derivative(lambda x: potential(rmag, Rmag, x), cosGamma)
-    dcosGammadr = (rmag/Rmag*R - cosGamma*r)/(Rmag*Rmag)
-    dcosGammadR = (Rmag/rmag*r - cosGamma*R)/(rmag*rmag)
-    pdot = -dVdr*r/rmag - dVdcosGamma*dcosGammadr
-    Pdot = -dVdR*R/Rmag - dVdcosGamma*dcosGammadR
+    dVdr = derivative(lambda x: potential(x, Rmag, gamma), rmag)
+    dVdR = derivative(lambda x: potential(rmag, x, gamma), Rmag)
+    dVdgamma = derivative(lambda x: potential(rmag, Rmag, x), gamma)
+    dgammadr = -(rmag/Rmag*R - cosGamma*r)/(rmag*rmag*np.sqrt(1-gamma*gamma))
+    dgammadR = -(Rmag/rmag*r - cosGamma*R)/(Rmag*Rmag*np.sqrt(1-gamma*gamma))
+    pdot = -dVdr*r/rmag - dVdgamma*dgammadr
+    Pdot = -dVdR*R/Rmag - dVdgamma*dgammadR
 
     return pdot, Pdot
 
