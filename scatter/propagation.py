@@ -91,9 +91,9 @@ def equation_of_motion(t, coordinates, numeric=True):
 
     if numeric:
         pdot, Pdot = numericDerivatives(r, R)
-        ana1, ana2 = analyticDerivatives(r, R)
-#        print('pdot-analytic=', pdot-ana1)
-#        print('Pdot-analytic=', Pdot-ana2)
+#        ana1, ana2 = analyticDerivatives(r, R)
+#        print('pdot-analytic=', pdot-ana1, pdot, ana1)
+#        print('Pdot-analytic=', Pdot-ana2, Pdot, ana2)
     else:
         pdot, Pdot = analyticDerivatives(r, R)
 
@@ -202,7 +202,7 @@ def main(args):
     r = np.array([2., 0., 0.], dtype=float)
     p = np.array([0., 0., 0.], dtype=float)
     R = np.array([-1., 0., 3.], dtype=float)
-    P = np.array([0., 0., -10.], dtype=float)
+    P = np.array([0., 0., -5.], dtype=float)
     initialConditions = np.concatenate((r, p, R, P), axis=0)
 
     # initialise stepping object
@@ -211,6 +211,7 @@ def main(args):
             ts,
             initialConditions,
             tf,
+            max_step=1e2,
             rtol=1e-08,
             atol=1e-10
             )
@@ -231,6 +232,7 @@ def main(args):
     while stepper.t < tf:
         try:
             stepper.step()
+            print(stepper.step_size)
             R1, P1, R2, P2 = getJacobiCoordinates(stepper.y)
             r1, r2, r3 = getParticleCoordinates(R1, P1, R2, P2)
             ax.scatter(r1[0], r1[1], r1[2], c='r', marker='.')
