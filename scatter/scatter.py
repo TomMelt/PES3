@@ -1,5 +1,5 @@
 import numpy as np
-from numpy import sin, cos, arccos, tan
+from numpy import sin, cos, arccos, tan, exp
 # from numpy.linalg import norm
 # from scipy.constants import codata
 from scipy.special import legendre
@@ -29,31 +29,19 @@ m1 = 1.
 m2 = 1.
 mu = m1*m2/(m1+m2)
 M = 1.
+alpha = 2.027
+beta = 0.375
+C = 17.283
 
 
-def potential(r, R, gamma):
-    alpha = 2.027
-    beta = 0.375
-    C = 17.283
+def potential(r, R, cosGamma):
     p2 = legendre(2)
-    V = C*np.exp(-alpha*R)*(1.+beta*p2(np.cos(gamma)))
+    V = C*exp(-alpha*R)*(1.+beta*p2(cosGamma))
     return V
 
 
-def dVdR(r, R, gamma):
-    alpha = 2.027
-    return -alpha*potential(r, R, gamma)
-
-
-def dVdgamma(r, R, gamma):
-    alpha = 2.027
-    beta = 0.375
-    C = 17.283
-    return -3.*beta*C*np.exp(-alpha*R)*np.cos(gamma)*np.sin(gamma)
-
-
 def Hamiltonian(r, t, p, R, T, P, pr, pt, pp, pR, pT, pP):
-    KE11 = pr*pr/(2.*mu) 
+    KE11 = pr*pr/(2.*mu)
     if p == 0.:
         KE12 = 0.
     else:
@@ -67,7 +55,7 @@ def Hamiltonian(r, t, p, R, T, P, pr, pt, pp, pR, pT, pP):
         KE22 = pT*pT/(2.*M*R*R*sin(P)*sin(P))
     KE23 = pP*pP/(2.*M*R*R)
     # gamma = arccos(sin(p)*sin(P)*cos(t-T) + cos(p)*cos(P))
-    # return KE1 + KE2 + potential(r, R, gamma)
+    # return KE1 + KE2 + potential(r, R, cosGamma)
     KE1 = KE11 + KE12 + KE13
     KE2 = KE21 + KE22 + KE23
 
@@ -100,6 +88,15 @@ def analyticDerivatives(
         ):
     # calculate and return the analytic derivatives
 
+    cosGamma = sin(p)*sin(P)*cos(t-T) + cos(p)*cos(P)
+    dVdcosGamma = 3.*beta*C*exp(-alpha*R)*cosGamma
+    dVdr = 0.
+    dVdR = -alpha*potential(r, R, cosGamma)
+    dcosGammadt = -sin(p)*sin(P)*sin(t-T)
+    dcosGammadp = cos(p)*sin(P)*cos(t-T) - sin(p)*cos(P)
+    dcosGammadT = -dcosGammadt
+    dcosGammadP = sin(p)*cos(P)*cos(t-T) - cos(p)*sin(P)
+
     dr = 0.
     if p == 0.:
         dt = 0.
@@ -114,19 +111,19 @@ def analyticDerivatives(
         dT = pT/(M*R*R*sin(P)*sin(P))
     dP = pP/(M*R*R)
 
-    dpr = pt/r*dt + pp/r*dp
-    dpt = 0.
+    dpr = pt/r*dt + pp/r*dp - dVdr
+    dpt = -dVdcosGamma*dcosGammadt
     if p == 0.:
-        dpp = 0.
+        dpp = -dVdcosGamma*dcosGammadp
     else:
-        dpp = pt/(2.*tan(p))*dt
+        dpp = pt/(2.*tan(p))*dt - dVdcosGamma*dcosGammadp
 
-    dpR = pT/R*dT + pP/R*dP
-    dpT = 0.
+    dpR = pT/R*dT + pP/R*dP - dVdR
+    dpT = -dVdcosGamma*dcosGammadT
     if P == 0.:
-        dpP = 0.
+        dpP = -dVdcosGamma*dcosGammadP
     else:
-        dpP = pT/(2.*tan(P))*dT
+        dpP = pT/(2.*tan(P))*dT - dVdcosGamma*dcosGammadP
 
     return dr, dt, dp, dR, dT, dP, dpr, dpt, dpp, dpR, dpT, dpP
 
@@ -193,14 +190,14 @@ def main(args):
     P_ini = np.array([-0.1, 0., 0.])
 
     r_ini = np.array([2., 0., np.pi/2.])
-    R_ini = np.array([1./sin(np.pi/4.), 0., np.pi/4.])
+    R_ini = np.array([1./sin(np.pi/20.), 0., np.pi/20.])
     p_ini = np.array([0., 0., 0.])
     P_ini = M*np.array([-cos(R_ini[2]), 0., R_ini[0]*sin(R_ini[2])])
 
-    r_ini = np.array([2., 0., np.pi/2.])
-    R_ini = np.array([5., 0., 0.])
-    p_ini = np.array([0., 0.1, 0.1])
-    P_ini = np.array([-0.1, 0., 0.])
+#    r_ini = np.array([2., 0., np.pi/2.])
+#    R_ini = np.array([5., 0., 0.])
+#    p_ini = np.array([0., 0.1, 0.1])
+#    P_ini = np.array([-0.1, 0., 0.])
 
     initialConditions = np.hstack((r_ini, R_ini, p_ini, P_ini))
 
@@ -211,8 +208,8 @@ def main(args):
             initialConditions,
             tf,
             max_step=1e1,
-            rtol=1e-08,
-            atol=1e-10
+            rtol=1e-06,
+            atol=1e-08
             )
 
     # array to store trajectories
@@ -240,7 +237,7 @@ def main(args):
             ax.scatter(r1[0], r1[1], r1[2], c='r', marker='.')
             ax.scatter(r2[0], r2[1], r2[2], c='b', marker='.')
             ax.scatter(r3[0], r3[1], r3[2], c='k', marker='.')
-            plt.pause(0.1)
+            plt.pause(0.01)
             data.append([stepper.t] + stepper.y.tolist())
         except RuntimeError as e:
             print(e)
