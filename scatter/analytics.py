@@ -64,14 +64,14 @@ def analyticDerivatives(
     dcosGammadP = sin(p)*cos(P)*cos(t-T) - cos(p)*sin(P)
 
     dr = 0.
-    if p == 0.:
+    if np.abs(p) <= 1e-40:
         dt = 0.
     else:
         dt = pt/(mu*r*r*sin(p)*sin(p))
     dp = pp/(mu*r*r)
 
     dR = pR/M
-    if P == 0.:
+    if np.abs(P) <= 1e-40:
         dT = 0.
     else:
         dT = pT/(M*R*R*sin(P)*sin(P))
@@ -79,14 +79,14 @@ def analyticDerivatives(
 
     dpr = pt/r*dt + pp/r*dp - dVdr
     dpt = -dVdcosGamma*dcosGammadt
-    if p == 0.:
+    if np.abs(p) <= 1e-40:
         dpp = -dVdcosGamma*dcosGammadp
     else:
         dpp = pt/(2.*tan(p))*dt - dVdcosGamma*dcosGammadp
 
     dpR = pT/R*dT + pP/R*dP - dVdR
     dpT = -dVdcosGamma*dcosGammadT
-    if P == 0.:
+    if np.abs(P) <= 1e-40:
         dpP = -dVdcosGamma*dcosGammadP
     else:
         dpP = pT/(2.*tan(P))*dT - dVdcosGamma*dcosGammadP
