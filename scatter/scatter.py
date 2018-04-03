@@ -1,11 +1,10 @@
 import numpy as np
-from numpy import sin, cos, arccos, tan, exp
-# from numpy.linalg import norm
-# from scipy.constants import codata
-from scipy.special import legendre
+from numpy import sin, cos
 import scipy.integrate as odeint
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
+import mpl_toolkits.mplot3d
+from scatter.analytics import equation_of_motion
+from scatter.transformation import getPropCoords, getParticleCoords
 import sys
 # import xarray as xr
 
@@ -16,167 +15,19 @@ import sys
 # - when dr is set equal to 0. instead of pr/mu
 #   the Hamiltonian is no longer conserved!!
 
-# constants taken from NIST (in u)
-# m_H2plus = 2.01533 u
-# m_H = 1.00794 u
-# m_p = 1.00728 u
-# conversion from u to a.u.
-# m_e = codata.value('electron mass in u')
-# conversion = 1./m_e
-# MU_1 = 0.671606*conversion
-# MU_2 = 0.503805*conversion
+
 m1 = 1.
 m2 = 1.
 mu = m1*m2/(m1+m2)
 M = 1.
-alpha = 2.027
-beta = 0.375
-C = 17.283
-
-
-def potential(r, R, cosGamma):
-    p2 = legendre(2)
-    V = C*exp(-alpha*R)*(1.+beta*p2(cosGamma))
-    return V
-
-
-def Hamiltonian(r, t, p, R, T, P, pr, pt, pp, pR, pT, pP):
-    KE11 = pr*pr/(2.*mu)
-    if p == 0.:
-        KE12 = 0.
-    else:
-        KE12 = pt*pt/(2.*mu*r*r*sin(p)*sin(p))
-    KE13 = pp*pp/(2.*mu*r*r)
-
-    KE21 = pR*pR/(2.*M)
-    if P == 0.:
-        KE22 = 0.
-    else:
-        KE22 = pT*pT/(2.*M*R*R*sin(P)*sin(P))
-    KE23 = pP*pP/(2.*M*R*R)
-    # gamma = arccos(sin(p)*sin(P)*cos(t-T) + cos(p)*cos(P))
-    # return KE1 + KE2 + potential(r, R, cosGamma)
-    KE1 = KE11 + KE12 + KE13
-    KE2 = KE21 + KE22 + KE23
-
-    return KE1 + KE2
 
 
 def derivative(func, x, h=1e-8):
     return 0.5*(func(x+h)-func(x-h))/h
 
 
-# def numericDerivatives(r, R):
-#
-#    #rmag = norm(r)
-#    #Rmag = norm(R)
-#    #cosGamma = (r @ R)/(rmag * Rmag)
-#    #
-#    #dVdr = derivative(lambda x: potential(x, Rmag, cosGamma), rmag)
-#    #dVdR = derivative(lambda x: potential(rmag, x, cosGamma), Rmag)
-#    #dVdcosGamma = derivative(lambda x: potential(rmag, Rmag, x), cosGamma)
-#    #dcosGammadr = (rmag/Rmag*R - cosGamma*r)/(rmag*rmag)
-#    #dcosGammadR = (Rmag/rmag*r - cosGamma*R)/(Rmag*Rmag)
-#    #pdot = -dVdr*r/rmag - dVdcosGamma*dcosGammadr
-#    #Pdot = -dVdR*R/Rmag - dVdcosGamma*dcosGammadR
-#
-#    return pdot, Pdot
-
-def analyticDerivatives(
-        r, t, p, R, T, P,
-        pr, pt, pp, pR, pT, pP
-        ):
-    # calculate and return the analytic derivatives
-
-    cosGamma = sin(p)*sin(P)*cos(t-T) + cos(p)*cos(P)
-    dVdcosGamma = 3.*beta*C*exp(-alpha*R)*cosGamma
-    dVdr = 0.
-    dVdR = -alpha*potential(r, R, cosGamma)
-    dcosGammadt = -sin(p)*sin(P)*sin(t-T)
-    dcosGammadp = cos(p)*sin(P)*cos(t-T) - sin(p)*cos(P)
-    dcosGammadT = -dcosGammadt
-    dcosGammadP = sin(p)*cos(P)*cos(t-T) - cos(p)*sin(P)
-
-    dr = 0.
-    if p == 0.:
-        dt = 0.
-    else:
-        dt = pt/(mu*r*r*sin(p)*sin(p))
-    dp = pp/(mu*r*r)
-
-    dR = pR/M
-    if P == 0.:
-        dT = 0.
-    else:
-        dT = pT/(M*R*R*sin(P)*sin(P))
-    dP = pP/(M*R*R)
-
-    dpr = pt/r*dt + pp/r*dp - dVdr
-    dpt = -dVdcosGamma*dcosGammadt
-    if p == 0.:
-        dpp = -dVdcosGamma*dcosGammadp
-    else:
-        dpp = pt/(2.*tan(p))*dt - dVdcosGamma*dcosGammadp
-
-    dpR = pT/R*dT + pP/R*dP - dVdR
-    dpT = -dVdcosGamma*dcosGammadT
-    if P == 0.:
-        dpP = -dVdcosGamma*dcosGammadP
-    else:
-        dpP = pT/(2.*tan(P))*dT - dVdcosGamma*dcosGammadP
-
-    return dr, dt, dp, dR, dT, dP, dpr, dpt, dpp, dpR, dpT, dpP
-
-
-def equation_of_motion(t, coordinates, numeric=True):
-    # current jacobi coordinates
-    r, t, p, R, T, P, pr, pt, pp, pR, pT, pP = getPropCoords(coordinates)
-
-    if numeric:
-        return
-    else:
-        derivs = list(
-                analyticDerivatives(
-                    r, t, p, R, T, P,
-                    pr, pt, pp, pR, pT, pP
-                    )
-                )
-        return np.array(derivs)
-
-
-def getPropCoords(coordinates):
-    # Get propagation coordinates (phase-space configuration)
-
-    r = coordinates[0]
-    t = coordinates[1]
-    p = coordinates[2]
-    R = coordinates[3]
-    T = coordinates[4]
-    P = coordinates[5]
-    pr = coordinates[6]
-    pt = coordinates[7]
-    pp = coordinates[8]
-    pR = coordinates[9]
-    pT = coordinates[10]
-    pP = coordinates[11]
-
-    return r, t, p, R, T, P, pr, pt, pp, pR, pT, pP
-
-
-def getParticleCoords(
-        r, t, p, R, T, P,
-        pr, pt, pp, pR, pT, pP
-        ):
-    # Get cartesian position of each particle
-    r1 = m2/(m1+m2)*r*np.array([cos(t)*sin(p), sin(t)*sin(p), cos(p)])
-    r2 = -m1/(m1+m2)*r*np.array([cos(t)*sin(p), sin(t)*sin(p), cos(p)])
-    r3 = R*np.array([cos(T)*sin(P), sin(T)*sin(P), cos(P)])
-
-    return r1, r2, r3
-
-
 def main(args):
-    #    testDeriv()
+    # run scattering calculation
 
     # time range
     ts = 0.
@@ -253,83 +104,6 @@ def main(args):
 #        legend.append(f'r1{i}_a')
 #    plt.legend(legend)
 #    plt.show()
-    return
-
-
-def testDeriv():
-    N = 100
-    r = np.linspace(0, 10, N)
-    R = np.linspace(0.5, 10, N)
-    cosGamma = np.linspace(-1, 1, N)
-    grid_r, grid_R, grid_cosGamma = np.meshgrid(r, R, cosGamma)
-    # grid_Pot = potential(grid_r, grid_R, cosGamma)
-    fig = plt.figure()
-    stride = 1
-    strideAna = 5
-
-    alpha = 2.027
-    beta = 0.375
-    C = 17.283
-
-    dVdr = derivative(lambda x: potential(x, grid_R, grid_cosGamma), grid_r)
-    dVdrAnalytic = np.zeros(dVdr.shape)
-    ax = fig.add_subplot(131, projection='3d')
-    ax.plot_wireframe(
-            grid_r[:, :, 0],
-            grid_R[:, :, 0],
-            dVdr[:, :, 0],
-            rstride=stride,
-            cstride=stride
-            )
-    ax.plot_wireframe(
-            grid_r[:, :, 0],
-            grid_R[:, :, 0],
-            dVdrAnalytic[:, :, 0],
-            rstride=strideAna,
-            cstride=strideAna,
-            color='r'
-            )
-    dVdR = derivative(lambda x: potential(grid_r, x, grid_cosGamma), grid_R)
-    dVdRAnalytic = -alpha*potential(grid_r, grid_R, grid_cosGamma)
-    ax = fig.add_subplot(132, projection='3d')
-    ax.plot_wireframe(
-            grid_r[:, :, 0],
-            grid_R[:, :, 0],
-            dVdR[:, :, 0],
-            rstride=stride,
-            cstride=stride
-            )
-    ax.plot_wireframe(
-            grid_r[:, :, 0],
-            grid_R[:, :, 0],
-            dVdRAnalytic[:, :, 0],
-            rstride=strideAna,
-            cstride=strideAna,
-            color='r'
-            )
-    dVdcosGamma = derivative(
-            lambda x: potential(grid_r, grid_R, x),
-            grid_cosGamma
-            )
-    dVdcosGammaAnalytic = 3.*beta*C*np.exp(-alpha*grid_R)*grid_cosGamma
-    ax = fig.add_subplot(133, projection='3d')
-    ax.plot_wireframe(
-            grid_cosGamma[:, 0, :],
-            grid_R[:, 0, :],
-            dVdcosGamma[:, 0, :],
-            rstride=stride,
-            cstride=stride
-            )
-    ax.plot_wireframe(
-            grid_cosGamma[:, 0, :],
-            grid_R[:, 0, :],
-            dVdcosGammaAnalytic[:, 0, :],
-            rstride=strideAna,
-            cstride=strideAna,
-            color='r'
-            )
-    plt.legend(['numeric', 'analytic'])
-    plt.show()
     return
 
 
