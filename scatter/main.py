@@ -25,6 +25,14 @@ import transform
 # - initially program was also built in spherical coords but this does not
 #   work well with RK4 prop because angles can be arbitrarily large
 #   and there are singularities in the equations of motion (1/sin^2(phi)) etc.
+# - "one of the necessary conditions for the proper description in terms of a
+#   classical traj. is that changes in the De Broglie wavelength of the
+#   appropriate vars. be small over the scale determined by the spatial
+#   variation of the wavefunction"
+#   And "epsilon*b*b = l_c^2/2Mu"
+#   E.E.Nikitin
+#   Jost W. (Ed.), Phys. chem., 6a, Academic Press, New York (1974)
+#   ch. 4
 
 
 def initialiseRotor(rand):

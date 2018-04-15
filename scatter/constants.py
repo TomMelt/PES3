@@ -5,7 +5,7 @@ mu = m1*m2/(m1+m2)
 M = 1.
 MU = M*(m1+m2)/(M+m1+m2)
 
-# potential constants
+# He-H2 potential constants
 alpha = 2.027
 beta = 0.375
 C = 17.283
