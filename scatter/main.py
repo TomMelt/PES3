@@ -1,13 +1,12 @@
 from scatter.plot import plotKE, plotStats, plot3Dtrace # noqa
-from scatter.transform import getPropCoords
+from scatter.transform import getPropCoords, internuclear, distanceFromCoM, getParticleCoords
 import numpy as np
 import random as rnd
 import scatter.analytics as ana
 import scatter.constants as c
-# import scatter.numeric as num
+import scatter.numeric as num
 import scipy.integrate as odeint
 import sys
-import transform
 # import xarray as xr
 
 
@@ -17,8 +16,8 @@ import transform
 # - add quantum classification after end of each trajectory
 # - save output data to file
 # - add/fix tests
-# - check analytic vs numeric results
-# - change masses for He-H2 (currently all 1 a.u.)
+# - check morse potential consts for H2 diatom
+# - should R+/- (initial diatom) be selected uniformly?
 # - start separate analysis code?
 
 # NOTE:
@@ -35,39 +34,9 @@ import transform
 #   ch. 4
 
 
-def initialiseRotor(rand):
-
-    r = c.re
-    theta = rand.random()*2.*np.pi
-    phi = rand.random()*np.pi
-
-    ri = transform.sphericalToCart(np.array([r, theta, phi]))
-    pi = np.array([0., 0., 0.])
-
-    return ri, pi
-
-
-def initialiseScattering(rand, epsilon):
-
-    b = rand.random()*c.bmax
-
-    X = b
-    Y = 0.
-    Z = np.sqrt(c.R0*c.R0 - b*b)
-    Ri = np.array([X, Y, Z])
-
-    PX = 0.
-    PY = 0.
-    PZ = np.sqrt(2.*c.MU*epsilon)
-    Pi = -np.array([PX, PY, PZ])
-
-    return Ri, Pi
-
-
-def isConverged(KE1a, KE1b, R):
-    c1 = np.abs(KE1a - KE1b) < c.econ
-    c2 = np.linalg.norm(R) > c.R0
-    return c1 and c2
+def isConverged(dist):
+    c1 = dist > c.R0
+    return c1
 
 
 def main(args):
@@ -76,68 +45,104 @@ def main(args):
     rand = rnd
     rand.seed(seed)
 
-    # time range
-    ts = 0.
-    tf = 1000.
-
     epsilon = float(args[1])
+    v = float(args[2])
+    J = float(args[3])
 
     data = []
 
-    countInelastic = 0
+    countElastic = 0
     countTotal = 0
 
-    for i in range(500):
+    for i in range(100):
 
         # initial conditions of the scattering particles
-        ri, pi = initialiseRotor(rand)
-        Ri, Pi = initialiseScattering(rand, epsilon)
+        ri, pi = num.initialiseDiatomic(v, J, rand)
+        Ri, Pi = num.initialiseScattering(rand, epsilon)
         b = Ri[0]
         initialConditions = np.concatenate((ri, pi, Ri, Pi), axis=0)
 
         # initialise stepping object
         stepper = odeint.RK45(
-                lambda t, y: ana.equation_of_motion(t, y),
-                ts, initialConditions, tf,
+                lambda t, y: num.equation_of_motion(t, y),
+                c.ts, initialConditions, c.tf,
                 max_step=c.maxstep, rtol=c.rtol, atol=c.atol
                 )
 
         # array to store trajectories
-        trajectory = []
-        trajectory.append([stepper.t] + stepper.y.tolist())
         r, p, R, P = getPropCoords(stepper.y)
-        KE1 = p@p/(2.*c.mu)
-        KE2 = P@P/(2.*c.M)
+        KE1i = p@p/(2.*c.mu)
+        KE2i = P@P/(2.*c.MU)
+        H = ana.Hamiltonian(r, p, R, P)
+        Hi = H
+        trajectory = []
+        trajectory.append([stepper.t] + stepper.y.tolist() + [H])
+        dist = 0.
+        maxstep = 0.
+        maxErr = 0.
+        countstep = 0
 
         # propragate Hamilton's eqn's
-        while stepper.t < tf:
+        while stepper.t < c.tf:
             try:
+
                 stepper.step()
-                trajectory.append([stepper.t] + stepper.y.tolist())
-#                print(stepper.step_size)
+
                 r, p, R, P = getPropCoords(stepper.y)
-                if isConverged(KE1, p@p/(2.*c.mu), R):
-                    KE1 = p@p/(2.*c.mu)
-                    KE2 = P@P/(2.*c.M)
+                R1, R2, R3 = internuclear(r, R)
+                r1, r2, r3, p1, p2, p3 = getParticleCoords(r, p, R, P)
+
+                if R1 == np.max([R1, R2, R3]):
+                    dist = distanceFromCoM(c.m2, c.m3, r2, r3, r1)
+                if R2 == np.max([R1, R2, R3]):
+                    dist = distanceFromCoM(c.m1, c.m3, r1, r3, r2)
+                if R3 == np.max([R1, R2, R3]):
+                    dist = distanceFromCoM(c.m1, c.m2, r1, r2, r3)
+
+                trajectory.append([stepper.t] + stepper.y.tolist() + [H])
+
+                maxstep = np.max([stepper.step_size, maxstep])
+                maxErr = np.max([np.abs(H - ana.Hamiltonian(r, p, R, P))/H, maxErr])
+                countstep = countstep + 1
+
+                if isConverged(dist):
+                    KE1f = p@p/(2.*c.mu)
+                    KE2f = P@P/(2.*c.MU)
+                    Hf = H
                     countTotal += 1
-                    if KE1 > 1e-3:
-                        countInelastic += 1
+                    if np.abs(KE2i - KE2f) < c.cutoff:
+                        countElastic += 1
                     break
-                KE1 = p@p/(2.*c.mu)
-                KE2 = P@P/(2.*c.M)
+                H = ana.Hamiltonian(r, p, R, P)
             except RuntimeError as e:
                 print(e)
                 break
         trajectory = np.array(trajectory)
 
-        # plotKE(trajectory)
-        # plot3Dtrace(trajectory)
+#        plotKE(trajectory)
+#        plot3Dtrace(trajectory)
 
-        data.append([b, KE1, float(countInelastic)/float(countTotal)])
+        if i % 10 == 0:
+            print(i)
 
-    print(epsilon, float(countInelastic)/float(countTotal))
+        data.append(
+                [seed, int(J), int(v), i, epsilon]
+                + [b, c.R0, dist]
+                + list(ri) + list(pi)
+                + list(Ri) + list(Pi)
+                + list(r) + list(p)
+                + list(R) + list(P)
+                + [R1, R2, R3]
+                + [KE1i, KE2i, KE1f, KE2f]
+                + [stepper.t, countstep, maxstep]
+                + [maxErr, Hi, Hf]
+                + [countElastic, countTotal])
 
-    # plotStats(data)
+    print(epsilon, 1. - float(countElastic)/float(countTotal))
+
+    outfile = open("data"+str(int(J))+str(int(v))+str(seed)+".csv", "w")
+    for line in data:
+        outfile.write(' '.join(str(e) for e in line)+"\n")
 
     return
 

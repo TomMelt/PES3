@@ -1,5 +1,5 @@
-from numpy import square as pow2
 from numpy import sqrt, exp
+from numpy import square as pow2
 
 D1 = 0.174436808
 D3 = 0.072279592
@@ -35,7 +35,7 @@ def PK(R1, R2, R3):
 
         Q = Qd(R1) + Qd(R2) + Qd(R3)
 
-        print(Q)
+#        print(Q)
 
         S123 = S1*S2*S3
         J123 = e*S123
