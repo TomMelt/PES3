@@ -1,5 +1,5 @@
 from mpl_toolkits.mplot3d import Axes3D # noqa
-from scatter.transform import getPropCoords, getParticleCoords
+from scatter.transform import getPropCoords, getParticleCoords, internuclear
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.optimize as opt
@@ -36,12 +36,17 @@ def plotKE(data):
 
     KE1, KE2 = [], []
     H = []
+    R1, R2, R3 = [], [], []
 
     for row in data:
         r, p, R, P = getPropCoords(row[1:-1])
         KE1.append(p@p/(2.*c.mu))
         KE2.append(P@P/(2.*c.MU))
         H.append(row[-1])
+        r1, r2, r3 = internuclear(r, R)
+        R1.append(r1)
+        R2.append(r2)
+        R3.append(r3)
 
     KE1 = np.array(KE1)
     KE2 = np.array(KE2)
@@ -49,28 +54,21 @@ def plotKE(data):
 
     ax = fig.add_subplot(221)
     ax.set_xlabel('time (a.u.)')
-    ax.set_ylabel(r'E_k')
+    ax.set_ylabel(r'$E$ (a.u.)')
     ax.plot(data[:, 0], KE1, '-k')
     ax.plot(data[:, 0], KE2, '-r')
     ax.plot(data[:, 0], H, '-g')
+    ax.legend([r'$E_k^1$', r'$E_k^2$', r'$H_{system}$'])
+
+    ax = fig.add_subplot(222)
+    ax.set_xlabel('time (a.u.)')
+    ax.set_ylabel(r'$R$ (a.u.)')
+    ax.plot(data[:, 0], R1, '-k')
+    ax.plot(data[:, 0], R2, '-b')
+    ax.plot(data[:, 0], R3, '-r')
+    ax.legend([r'$R_{BC}$', r'$R_{AB}$', r'$R_{AC}$'])
     plt.show()
 
-    return
-
-
-def plotStats(data):
-    data = np.array(data)
-    fig = plt.figure(figsize=(3, 3))
-    fig.add_subplot(221, title='b vs KE1')
-    plt.hist2d(data[:, 0], data[:, 1], bins=20)
-    fig.add_subplot(222, title=f'1D b (bmax = {c.bmax})')
-    plt.hist(data[:, 0], 10)
-    fig.add_subplot(223, title='1D KE1')
-    plt.hist(data[:, 1], 10)
-    fig.add_subplot(224, title='cross-section')
-    plt.plot(data[:, 2])
-
-    plt.show()
     return
 
 

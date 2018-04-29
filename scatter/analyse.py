@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import constants as c
 
 
-headers = "seed J v i epsilon b c.R0 dist rix riy riz pix piy piz Rix Riy Riz Pix Piy Piz rfx rfy rfz pfx pfy pfz Rfx Rfy Rfz Pfx Pfy Pfz R1 R2 R3 KE1i KE2i KE1f KE2f tf countstep maxstep maxErr Hi Hf countElastic countTotal" # noqa
+headers = "seed J v i epsilon b c.R0 dist rix riy riz pix piy piz Rix Riy Riz Pix Piy Piz rfx rfy rfz pfx pfy pfz Rfx Rfy Rfz Pfx Pfy Pfz R1 R2 R3 KE1i KE2i KE1f KE2f tf countstep maxstep maxErr Hi Hf countElastic countTotal countAB countAC countBC" # noqa
 headers = headers.split(" ")
 
 
@@ -13,19 +13,21 @@ def analyse(infiles):
 
     # import data from input files
     frames = []
-    runElastic = 0
-    runTotal = 0
+    runningTotal = np.zeros(5, dtype=int)
     for infile in infiles:
         df = pd.read_csv(infile, sep=" ", header=None, names=headers)
-        df['countElastic'] = df['countElastic'].apply(lambda x: x + runElastic)
-        df['countTotal'] = df['countTotal'].apply(lambda x: x + runTotal)
-        runElastic = df['countElastic'].iloc[-1]
-        runTotal = df['countTotal'].iloc[-1]
+        for col in range(5):
+            df.iloc[:, -(1+col)] = df.iloc[:, -(1+col)].apply(lambda x: x + runningTotal[col])
+            runningTotal[col] = df.iloc[-1, -(1+col)]
         frames.append(df)
 
     # compile data into one dataframe
     df = pd.concat(frames)
     df = df.reset_index(drop=True)
+
+    df['AB'] = df.apply(lambda x: x['R2'] == min(x['R1'], x['R2'], x['R3']), axis=1)
+
+    print(df.loc[df['AB'] == True])
 
     epsilon = df['epsilon'].iloc[0]
 
@@ -33,8 +35,11 @@ def analyse(infiles):
 
     fig = plt.figure(figsize=(20,10))
     ax = fig.add_subplot(231)
-    df['prob'] = 1-df['countElastic']/df['countTotal']
-    (np.pi*c.bmax*c.bmax*df['prob']).plot()
+    df['countReact'] = df['countAB']+df['countAC']
+    df['cross'] = np.pi*c.bmax*c.bmax*df['countReact']/df['countTotal']
+    df['cross'].plot()
+    df['crossErr'] = df['cross']*np.sqrt((df['countTotal']-df['countReact'])/df['countTotal']*df['countReact'])
+    plt.fill_between(df.index, df['cross']-df['crossErr'], df['cross']+df['crossErr'], color='b', alpha=0.2)
     ax.set_xlabel('no. of trajs')
     ax.set_ylabel('$\sigma$ (a.u.)')
 
@@ -66,6 +71,8 @@ def analyse(infiles):
 
 
     plt.show()
+
+    df.to_csv("compiled.csv")
 
     return
 

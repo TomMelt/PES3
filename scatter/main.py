@@ -1,4 +1,4 @@
-from scatter.plot import plotKE, plotStats, plot3Dtrace # noqa
+from scatter.plot import plotKE, plot3Dtrace # noqa
 from scatter.transform import getPropCoords, internuclear, distanceFromCoM, getParticleCoords
 import numpy as np
 import random as rnd
@@ -11,19 +11,26 @@ import sys
 
 
 # TODO:
-# - add functionality to terminate program on convergence of cross-section
-#   not just on the max number of trajectories
 # - add quantum classification after end of each trajectory
-# - save output data to file
 # - add/fix tests
 # - check morse potential consts for H2 diatom
 # - should R+/- (initial diatom) be selected uniformly?
-# - start separate analysis code?
+# - change definition of reaction (not inelastic/elastic)
+#   instead it is whether AC+B or AB+C form from BC+A
 
 # NOTE:
+# ----------------------------------------------------------------------------
+# - I have checked the rovibrational energy levels in the numeric.py
+#   function rovibrationalEnergy(v, J). They agree with literature.
+#   see the text file comparison_rovibrational_h2.txt
+# ----------------------------------------------------------------------------
+# - I have checked the initial conditions for the diatom
+#   inner(ri,pi) == 0 by definition
+# ----------------------------------------------------------------------------
 # - initially program was also built in spherical coords but this does not
 #   work well with RK4 prop because angles can be arbitrarily large
 #   and there are singularities in the equations of motion (1/sin^2(phi)) etc.
+# ----------------------------------------------------------------------------
 # - "one of the necessary conditions for the proper description in terms of a
 #   classical traj. is that changes in the De Broglie wavelength of the
 #   appropriate vars. be small over the scale determined by the spatial
@@ -32,6 +39,7 @@ import sys
 #   E.E.Nikitin
 #   Jost W. (Ed.), Phys. chem., 6a, Academic Press, New York (1974)
 #   ch. 4
+# ----------------------------------------------------------------------------
 
 
 def isConverged(dist):
@@ -53,8 +61,9 @@ def main(args):
 
     countElastic = 0
     countTotal = 0
+    countAB, countAC, countBC = 0, 0, 0
 
-    for i in range(100):
+    for i in range(400):
 
         # initial conditions of the scattering particles
         ri, pi = num.initialiseDiatomic(v, J, rand)
@@ -78,9 +87,10 @@ def main(args):
         trajectory = []
         trajectory.append([stepper.t] + stepper.y.tolist() + [H])
         dist = 0.
-        maxstep = 0.
-        maxErr = 0.
+        maxstep, maxErr = 0., 0.
         countstep = 0
+
+#        if i != 47: continue
 
         # propragate Hamilton's eqn's
         while stepper.t < c.tf:
@@ -110,6 +120,12 @@ def main(args):
                     KE2f = P@P/(2.*c.MU)
                     Hf = H
                     countTotal += 1
+                    if R1 == np.min([R1, R2, R3]):
+                        countBC += 1
+                    if R2 == np.min([R1, R2, R3]):
+                        countAB += 1
+                    if R3 == np.min([R1, R2, R3]):
+                        countAC += 1
                     if np.abs(KE2i - KE2f) < c.cutoff:
                         countElastic += 1
                     break
@@ -136,9 +152,10 @@ def main(args):
                 + [KE1i, KE2i, KE1f, KE2f]
                 + [stepper.t, countstep, maxstep]
                 + [maxErr, Hi, Hf]
-                + [countElastic, countTotal])
+                + [countElastic, countTotal]
+                + [countAB, countAC, countBC])
 
-    print(epsilon, 1. - float(countElastic)/float(countTotal))
+    print(epsilon, np.pi*c.bmax*c.bmax*float(countAB+countAC)/float(countTotal))
 
     outfile = open("data"+str(int(J))+str(int(v))+str(seed)+".csv", "w")
     for line in data:

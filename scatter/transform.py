@@ -32,12 +32,8 @@ def getParticleCoords(r, p, R, P):
     return r1, r2, r3, p1, p2, p3
 
 
-def sphericalToCart(coordinates):
+def sphericalToCart(r, t, p):
     # spherical r, theta and phi into cartesian x, y and z
-
-    r = coordinates[0]
-    t = coordinates[1]
-    p = coordinates[2]
 
     x = r*cos(t)*sin(p)
     y = r*sin(t)*sin(p)
@@ -46,11 +42,11 @@ def sphericalToCart(coordinates):
     return np.array([x, y, z])
 
 
-def perpMomentum(P, t, p, n):
+def perpMomentum(m, t, p, n):
 
-    px = -p*(sin(t)*cos(n) + cos(t)*cos(p)*sin(n))
-    py = p*(cos(t)*cos(n) - sin(t)*cos(p)*sin(n))
-    pz = p*(sin(t)*sin(n))
+    px = -m*(sin(t)*cos(n) + cos(t)*cos(p)*sin(n))
+    py = m*(cos(t)*cos(n) - sin(t)*cos(p)*sin(n))
+    pz = m*(sin(p)*sin(n))
 
     return np.array([px, py, pz])
 

@@ -33,13 +33,17 @@ def initialiseDiatomic(v, J, rand):
     r_minus = opt.brentq(lambda x: rootFunctional(v, J, x), c.rmin, pk.Re)
 
     r = rand.choice([r_plus, r_minus])
-    # print("r-:", r_minus, " r+:", r_plus, "r:", r)
-
-    ri = transform.sphericalToCart(np.array([r, theta, phi]))
+    ri = transform.sphericalToCart(r, theta, phi)
 
     p = np.sqrt(J*(J+1.))/r
-
     pi = transform.perpMomentum(p, theta, phi, eta)
+
+#    print("r-:", r_minus, " r+:", r_plus, "r:", r)
+#    print("ri",ri)
+#    print(np.linalg.norm(ri))
+#    print("p = ",p)
+#    print("pi",pi)
+#    print(np.linalg.norm(pi))
 
     return ri, pi
 
@@ -55,8 +59,8 @@ def initialiseScattering(rand, epsilon):
 
     PX = 0.
     PY = 0.
-    PZ = np.sqrt(2.*c.MU*epsilon)
-    Pi = -np.array([PX, PY, PZ])
+    PZ = -np.sqrt(2.*c.MU*epsilon)
+    Pi = np.array([PX, PY, PZ])
 
     return Ri, Pi
 

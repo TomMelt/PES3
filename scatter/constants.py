@@ -10,10 +10,10 @@ Mt = m1+m2+m3
 MU = m3*(m1+m2)/Mt
 
 # initial separation of scattering particle R(t=0)
-R0 = 10.
+R0 = 5.
 
 # scattering range max
-bmax = 5.
+bmax = 2.
 
 # RK4 parameters
 rtol = 1e-06
