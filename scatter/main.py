@@ -17,8 +17,20 @@ import sys
 # - should R+/- (initial diatom) be selected uniformly?
 # - change definition of reaction (not inelastic/elastic)
 #   instead it is whether AC+B or AB+C form from BC+A
+# - bin minimum distance between atoms:
+#   if it Rmin < 0.2 a.u. check that the PK potential is valid
+#   if Rmin > 0.2 a.u. then the PK potential will be OK
 
 # NOTE:
+# ----------------------------------------------------------------------------
+# - I ran a few test calculation between 0.01 - 0.05 a.u. scattering energy
+#   and the agreement with Karplus1965 seemed reasonable for J = 0, 1 and 5
+#   with v = 0 in each case
+# ----------------------------------------------------------------------------
+# - The initial condition of the scattering H atom is not exactly the same
+#   as Karplus1965, they account for vibrational phase using
+#   0.5*t_v*sqrt(2*epsilon/c.MU) where t_v is the period of the diatom H2
+#   For this comparison I have not included the effect of vibrational phase
 # ----------------------------------------------------------------------------
 # - I have checked the rovibrational energy levels in the numeric.py
 #   function rovibrationalEnergy(v, J). They agree with literature.
@@ -63,7 +75,7 @@ def main(args):
     countTotal = 0
     countAB, countAC, countBC = 0, 0, 0
 
-    for i in range(400):
+    for i in range(c.maxtraj):
 
         # initial conditions of the scattering particles
         ri, pi = num.initialiseDiatomic(v, J, rand)

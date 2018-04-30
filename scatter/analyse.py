@@ -27,9 +27,11 @@ def analyse(infiles):
 
     df['AB'] = df.apply(lambda x: x['R2'] == min(x['R1'], x['R2'], x['R3']), axis=1)
 
-    print(df.loc[df['AB'] == True])
+#    print(df.loc[df['AB'] == True])
 
     epsilon = df['epsilon'].iloc[0]
+    J = df['J'].iloc[0]
+    v = df['v'].iloc[0]
 
     # ========== plotting ==========
 
@@ -38,7 +40,7 @@ def analyse(infiles):
     df['countReact'] = df['countAB']+df['countAC']
     df['cross'] = np.pi*c.bmax*c.bmax*df['countReact']/df['countTotal']
     df['cross'].plot()
-    df['crossErr'] = df['cross']*np.sqrt((df['countTotal']-df['countReact'])/df['countTotal']*df['countReact'])
+    df['crossErr'] = df['cross']*np.sqrt((df['countTotal']-df['countReact'])/df['countTotal']/df['countReact'])
     plt.fill_between(df.index, df['cross']-df['crossErr'], df['cross']+df['crossErr'], color='b', alpha=0.2)
     ax.set_xlabel('no. of trajs')
     ax.set_ylabel('$\sigma$ (a.u.)')
@@ -70,7 +72,8 @@ def analyse(infiles):
     ax.set_ylabel('count')
 
 
-    plt.show()
+#    plt.show()
+    print(epsilon, df['cross'].iloc[-1], df['crossErr'].iloc[-1])
 
     df.to_csv("compiled.csv")
 

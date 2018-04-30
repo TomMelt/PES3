@@ -15,6 +15,9 @@ R0 = 5.
 # scattering range max
 bmax = 2.
 
+# total number of trajectories to run per job
+maxtraj = 400
+
 # RK4 parameters
 rtol = 1e-06
 atol = 1e-07
