@@ -1,8 +1,8 @@
+import constants as c
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import sys
-import matplotlib.pyplot as plt
-import constants as c
 
 
 headers = "seed J v i epsilon b c.R0 dist rix riy riz pix piy piz Rix Riy Riz Pix Piy Piz rfx rfy rfz pfx pfy pfz Rfx Rfy Rfz Pfx Pfy Pfz R1 R2 R3 KE1i KE2i KE1f KE2f tf countstep maxstep maxErr Hi Hf countElastic countTotal countAB countAC countBC" # noqa

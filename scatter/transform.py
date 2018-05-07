@@ -1,7 +1,7 @@
-from numpy.linalg import norm
 from numpy import cos, sin
+from numpy.linalg import norm
+import constants as c
 import numpy as np
-import scatter.constants as c
 
 
 def getPropCoords(coordinates):

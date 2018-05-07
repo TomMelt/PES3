@@ -1,33 +1,54 @@
+from initialize import rovibrationalEnergy
 from mpl_toolkits.mplot3d import Axes3D # noqa
-from scatter.transform import getPropCoords, getParticleCoords, internuclear
+from numeric import potential, diatomPEC
+from transform import getPropCoords, getParticleCoords, internuclear
+import constants as c
 import matplotlib.pyplot as plt
 import numpy as np
-import scipy.optimize as opt
-import scatter.constants as c
-import pk
-from numeric import rovibrationalEnergy, rootFunctional
+import scipy.interpolate as itp
 
 
-def testRovibrationalEnergy():
-    plt.figure()
-    for J in range(10):
-        for v in range(5):
-            plt.plot([J], [rovibrationalEnergy(v, J)], 'kx')
+def func(x, y, R1):
+    R2 = np.sqrt(x*x+y*y+1.-2*y)
+    R3 = np.sqrt(x*x+y*y+1.+2*y)
+    return potential(R1, R2, R3)
+
+
+def testPotential():
+    fig = plt.figure()
+    ax = fig.gca(projection='3d')
+
+    # Make data.
+    X = np.linspace(-3, 3, num=50)
+    Y = np.linspace(-3, 3, num=50)
+    X, Y = np.meshgrid(X, Y)
+    Z = func(X, Y, 2.)
+
+    # Plot the surface.
+    ax.plot_wireframe(X, Y, Z, rstride=1, cstride=1)
+
+    ax.set_zlim([-3., 1.])
+
     plt.show()
-    return
 
+    X = np.linspace(0.5, 15., num=100)
 
-def testRootFunctional():
-    plt.figure()
-    r = np.linspace(1., 2., 100)
-    y = rootFunctional(0, 0, r)
-    plt.plot(r, y, '-k')
+    plt.plot(X, diatomPEC(X) - diatomPEC(2.), '-')
+    for v in range(5):
+        plt.plot(
+                [1., 4.],
+                [rovibrationalEnergy(v, 0), rovibrationalEnergy(v, 0)],
+                '-k'
+                )
+    ax.set_ylim([0, 2])
     plt.show()
-    f = lambda x: rootFunctional(0, 0, x)
-    print(f(1.), f(pk.Re))
-    print(opt.brentq(lambda x: rootFunctional(0, 0, x), 0.1, pk.Re))
-    print(opt.brentq(lambda x: rootFunctional(0, 0, x), 3., pk.Re))
-    return
+
+    R1 = np.linspace(1.0, 20., num=100)
+    R2 = R1
+
+    plt.plot(X, potential(2., R1, R2), '-')
+
+    plt.show()
 
 
 def plotKE(data):
@@ -62,6 +83,12 @@ def plotKE(data):
 
     ax = fig.add_subplot(222)
     ax.set_xlabel('time (a.u.)')
+    ax.set_ylabel(r'$E$ (a.u.)')
+    ax.plot(data[:, 0], H, '-g')
+    ax.legend([r'$H_{system}$'])
+
+    ax = fig.add_subplot(223)
+    ax.set_xlabel('time (a.u.)')
     ax.set_ylabel(r'$R$ (a.u.)')
     ax.plot(data[:, 0], R1, '-k')
     ax.plot(data[:, 0], R2, '-b')
@@ -72,26 +99,74 @@ def plotKE(data):
     return
 
 
+def plot3Danim(data, tstart=0., tfinal=None, tstep=10.):
+
+    x1, x2, x3 = [], [], []
+    for row in data:
+        r, p, R, P = getPropCoords(row[1:-1])
+        r1, r2, r3, p1, p2, p3 = getParticleCoords(r, p, R, P)
+        x1.append(r1)
+        x2.append(r2)
+        x3.append(r3)
+    x1 = np.array(x1)
+    x2 = np.array(x2)
+    x3 = np.array(x3)
+    ta = data[:, 0]
+    if tfinal is None:
+        tfinal = ta[-1]
+    tn = np.arange(tstart, tfinal, step=tstep)
+    interpx1 = itp.interp1d(ta, x1.T)
+    interpx2 = itp.interp1d(ta, x2.T)
+    interpx3 = itp.interp1d(ta, x3.T)
+    x1 = interpx1(tn).T
+    x2 = interpx2(tn).T
+    x3 = interpx3(tn).T
+
+    plt.ion()
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    ax.set_xlim(-25, 25)
+    ax.set_ylim(-25, 25)
+    ax.set_zlim(-5, 45)
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('Z')
+    for i in range(len(tn)):
+        ax.scatter(x1[i, 0], x1[i, 1], x1[i, 2], c='r', marker='.')
+        ax.scatter(x2[i, 0], x2[i, 1], x2[i, 2], c='b', marker='.')
+        ax.scatter(x3[i, 0], x3[i, 1], x3[i, 2], c='k', marker='.')
+        plt.pause(0.001)
+    plt.ioff()
+    plt.show()
+
+    return
+
+
 def plot3Dtrace(data):
 
     plt.ion()
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
-    ax.set_xlim(-10, 10)
-    ax.set_ylim(-10, 10)
-    ax.set_zlim(-10, 10)
+    ax.set_xlim(-25, 25)
+    ax.set_ylim(-25, 25)
+    ax.set_zlim(-5, 45)
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
     ax.set_zlabel('Z')
-    for row in data[0::10]:
+    x1, x2, x3 = [], [], []
+    for row in data[0::1]:
         r, p, R, P = getPropCoords(row[1:-1])
         r1, r2, r3, p1, p2, p3 = getParticleCoords(r, p, R, P)
-        ax.scatter(r1[0], r1[1], r1[2], c='r', marker='.')
-        ax.scatter(r2[0], r2[1], r2[2], c='b', marker='.')
-        ax.scatter(r3[0], r3[1], r3[2], c='k', marker='.')
-        plt.pause(0.1)
-    plt.ioff()
+        x1.append(r1)
+        x2.append(r2)
+        x3.append(r3)
+    x1 = np.array(x1)
+    x2 = np.array(x2)
+    x3 = np.array(x3)
+    print(x1)
+    ax.plot(x1[:, 0], x1[:, 1], x1[:, 2], '-r')
+    ax.plot(x2[:, 0], x2[:, 1], x2[:, 2], '-b')
+    ax.plot(x3[:, 0], x3[:, 1], x3[:, 2], '-k')
     plt.show()
-    del fig
 
     return

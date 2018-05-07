@@ -1,0 +1,408 @@
+        PROGRAM DIATOMIC
+
+C       CALCULATES ENERGIES AND EXPANSION COEFFICIENTS FOR ROTATIONAL 
+C       AND VIBRATIONAL ENERGY LEVELS. EXPANDS WAVEFUNCTION IN HARMONIC
+C       OSCIALLTOR BASIS SET (FUTURE IMPLEMENTATION COULD INCLUDE MORSE
+C       BASIS ALSO). CODE REQUIRES POTENTIAL IN 'pot' FUNCTION FILE TO
+C       BE COMPILED WITH CODE. ALTERNATIVELY CAN USE BUILT IN MORSE
+C       AND HARMONIC POTENTIALS. INTEGRALS EVALUATED USING GAUSS-HERMITE QUADRATURE
+
+c       CODE ASSUMES POTENTIAL GIVES IN TERMS OF X = R - RE 
+
+C       RETURNS EIGENVALUES (ENERGIES) AND EIGENVECTORS (EXPANSION COEFFICIENTS)
+C       FOR GIVEN BASIS SET. INPUT PARAMATERS IN FILE 'input'
+
+C       ENERGIES IN ATOMIC UNITS
+
+C       MAIN PROGRAM PARAMATERS:
+C       RE: EQUILIBRIUM BOND LENGTH FOR HARMONIC BASIS
+C       FC: FORCE CONSTANT FOR HARMONIC POTENTIAL
+C       DE: DEPTH OF WELL FOR MORSE POTENTIAL
+C       U: REDUCES MASS OF MOLECULE
+C       START/FINISH: TIMING 
+C       X: POINTS FOR HERMITE QUADRATURE
+C       W: WEIGHTS FOR HERMITE QUADRATURE
+C       H: HAMILTONIAN MATRIX
+C       K : KINETIC ENERGY MATRIX
+C       C : CENTRIFUGAL POTENTIAL
+C       P : POTENTIAL
+C       WORK/W2/LWORK: PARAMATERS FOR LAPACK DIAGONALIZATION 
+C       POTTYPE: HARMONIC 1, MORSE 2, EXTERNAL >2.
+C       JI/JF : INITIAL/FINAL J VALUES TO LOOP OVER
+C       NQP: NUMBER OF QUADRATURE POINTS (MUST BE >= NBASIS)
+C       NBASIS: NUMBER OF BASIS FUNCTIONS
+C       J : CURRENT J VALUE FOR LOOP
+C       INFO: ERROR PARAMATER FOR LAPACK DIAGONALIZATION
+
+
+        IMPLICIT NONE
+        DOUBLE PRECISION RE,FC,DE,START,FINISH,U
+        DOUBLE PRECISION, ALLOCATABLE :: X(:),W(:),H(:,:),
+     1  K(:,:), C(:,:), P(:,:),WORK(:),W2(:)
+        INTEGER POTTYPE,JI,JF,NBASIS,NQP,J,LWORK,INFO,II,JJ
+
+        CALL CPU_TIME(START)
+
+C       READ IN INPUT PARAMATERS
+        OPEN(2,FILE = 'diatom.in', STATUS = 'UNKNOWN')
+        READ(2,*) POTTYPE
+        READ(2,*) RE
+        READ(2,*) FC
+        READ(2,*) DE
+        READ(2,*) U
+        READ(2,*) JI
+        READ(2,*) JF
+        READ(2,*) NBASIS
+        READ(2,*) NQP
+        IF (NQP.LT.NBASIS) STOP 'NOT ENOUGH QUAD POINTS'
+        READ(2,*) LWORK
+        CLOSE(2)
+
+C       ALLOCATE WORK SPACE
+
+        ALLOCATE(X(NQP))
+        ALLOCATE(W(NQP))
+
+        ALLOCATE(K(NBASIS,NBASIS))
+        ALLOCATE(C(NBASIS,NBASIS))
+        ALLOCATE(P(NBASIS,NBASIS))
+        ALLOCATE(H(NBASIS,NBASIS))
+        ALLOCATE(W2(NBASIS))
+        ALLOCATE(WORK(LWORK))
+
+C       GENERATE QUADRATURE POINTS/WEIGHTS
+
+        CALL HERMS(NQP,0.D0,RE,(FC*U)**0.5,X,W)
+
+        DO J = 1, NQP
+        IF (X(J).LT.0) STOP 'NEGATIVE QUAD POINT'
+        END DO
+
+C       INITIATE LOOP OVER ROTATIONAL QUANTUM NUMBERS
+        OPEN(6, FILE = 'diatom.out', STATUS = 'UNKNOWN')
+        DO J = JI, JF
+
+
+C       FILL IN J INDEPENDENT KINETIC AND POTENTIAL MATRICES
+        IF (J.EQ.JI) THEN
+        CALL KINETIC(NBASIS,RE,FC,U,NQP,X,W,K)
+
+
+        CALL POTENTIAL(NBASIS,POTTYPE,RE,FC,DE,U,NQP,X,W,P)
+        END IF
+
+C       FILL CENTRIFUGAL MATRIX
+        CALL ROT(NBASIS,J,RE,FC,U,NQP,X,W,C)
+
+C       FORM HAMILTONIAN MATRIX
+        H = K + P + C
+
+C       DIAGONALIZE MATRIX TO FIND EIGENVALUES AND VECTORS
+        CALL DSYEV('V','U',NBASIS,H,NBASIS,W2,WORK,LWORK,INFO) 
+        IF(INFO.NE.0) STOP 'ERROR IN DSYEV, INFO NE 0'
+        IF(WORK(1).GT.LWORK) WRITE(6,*) 'WARNING LWORK TOO SMALL'
+        IF(WORK(1).GT.LWORK) WRITE(6,*) 'OPTIMUM = ', WORK(1)
+
+C       WRITE EIGENVALUES/VECTORS TO FILE
+        WRITE(6,*) 'J =', J
+
+        DO II = 1, NBASIS
+        WRITE(6,*) 
+        WRITE(6,*) II-1, W2(II)
+        WRITE(6,*) (H(JJ,II), JJ = 1, NBASIS)
+        WRITE(6,*) 
+        WRITE(6,*) 
+        END DO
+
+C       END LOOP OVER J VALUES
+        END DO
+        
+        CALL CPU_TIME(FINISH)
+C       PRINT TIMING INFORMATION
+        WRITE(6,*) 'CPU TIME (SEC) =', (FINISH - START)
+
+        CLOSE(6)
+
+        STOP
+        END
+
+        SUBROUTINE ROT(NBASIS,JJ,RE,FC,U,NQP,X,W,C)
+
+C       FILLS IN CENTRIGUAL MATRIX BY PERFORMING INTEGRALS WITH
+C       J(J+1)/(2*U*(R**2)) INTEGRALS
+C       NEW PARAMATERS:
+C       NORMI/NORMJ: NORMALISATION CONSTANTS FOR BASIS FUNCTIONS
+
+        IMPLICIT NONE
+        DOUBLE PRECISION RE,FC,U,X(NQP),W(NQP),C(NBASIS,NBASIS),CENT,
+     1 NORMI,NORMJ,PI,SUMS,A,Q,HERM
+        INTEGER NBASIS,I,J,JJ,NQP,II
+
+        PI = ACOS(-1.D0)
+
+
+        A = (FC*U)**0.25
+
+        DO I = 1, NBASIS
+          DO J = I, NBASIS
+
+            SUMS = 0.D0
+            DO II = 1, NQP
+              Q = A*(X(II)-RE)
+              SUMS = SUMS + W(II)*HERM(I-1,Q)*
+     1   ( JJ*(JJ+1)/(2*U*(X(II))**2))*HERM(J-1,Q)
+            END DO
+
+
+            NORMI =  SQRT(((FC**0.25)*(U**0.25))/
+     1    ( (SQRT(PI))*(2**(I-1))*GAMMA(I*1.d0)) )
+
+            NORMJ =  SQRT(((FC**0.25)*(U**0.25))/
+     1  ( (SQRT(PI))*(2**(J-1))*GAMMA(J*1.d0)) )
+
+            C(I,J) = NORMI*NORMJ*SUMS
+          END DO
+        END DO
+
+        RETURN
+        END
+
+
+        SUBROUTINE POTENTIAL(NBASIS,POTTYPE,RE,FC,DE,U,NQP,X,W,P)
+
+C       FILLS IN POTENTIAL MATRIX, ALL PARAMATERS ALREADY DECLARED IN 
+C       MAIN ROUTINE. EVALUATES HARMONIC,MORSE OR EXTERNAL POTENTIAL
+C       BASED ON VALUE OF POTTYPE
+
+        IMPLICIT NONE
+        DOUBLE PRECISION RE,FC,DE,U,X(NQP),W(NQP),P(NBASIS,NBASIS),
+     1   SUMS,HARM,NORMI,NORMJ,PI,MORSE,EXT
+        INTEGER NQP,NBASIS,POTTYPE,I,J,II
+
+        PI = ACOS(-1.D0)
+
+        IF (POTTYPE.EQ.1) THEN
+
+        DO I = 1, NBASIS
+          DO J = I, NBASIS
+
+            SUMS = 0.d0
+            DO II = 1, NQP
+              SUMS = SUMS + W(II)*HARM(I-1,J-1,X(II),FC,U)
+            END DO
+
+            NORMI =  SQRT(((FC**0.25)*(U**0.25))/
+     1    ( (SQRT(PI))*(2**(I-1))*GAMMA(I*1.d0)) )
+
+           NORMJ =  SQRT(((FC**0.25)*(U**0.25))/
+     1  ( (SQRT(PI))*(2**(J-1))*GAMMA(J*1.d0)) )
+
+           P(I,J) = SUMS*NORMI*NORMJ
+
+          END DO
+        END DO
+
+
+        ELSE IF (POTTYPE.EQ.2) THEN
+
+        DO I = 1, NBASIS
+          DO J = I, NBASIS
+
+          SUMS = 0.D0
+          DO II = 1, NQP
+              SUMS = SUMS + W(II)*MORSE(I-1,J-1,X(II),FC,DE,U)
+            END DO
+
+            NORMI =  SQRT(((FC**0.25)*(U**0.25))/
+     1    ( (SQRT(PI))*(2**(I-1))*GAMMA(I*1.d0)) )
+
+           NORMJ =  SQRT(((FC**0.25)*(U**0.25))/
+     1  ( (SQRT(PI))*(2**(J-1))*GAMMA(J*1.d0)) )
+
+            P(I,J) = NORMI*NORMJ*SUMS
+
+          END DO
+        END DO
+
+        ELSE IF (POTTYPE.GT.2) THEN
+
+        DO I = 1, NBASIS
+          DO J = I, NBASIS
+
+            SUMS = 0.D0
+            DO II = 1, NQP
+              SUMS = SUMS + W(II)*EXT(I-1,J-1,X(II),FC,U,RE)
+            END DO
+
+            NORMI =  SQRT(((FC**0.25)*(U**0.25))/
+     1    ( (SQRT(PI))*(2**(I-1))*GAMMA(I*1.d0)) )
+        
+            NORMJ =  SQRT(((FC**0.25)*(U**0.25))/
+     1  ( (SQRT(PI))*(2**(J-1))*GAMMA(J*1.d0)) )
+
+            P(I,J) = NORMI*NORMJ*SUMS
+         
+          END DO
+        END DO
+
+        END IF
+
+        RETURN
+        END
+
+        DOUBLE PRECISION FUNCTION EXT(I,J,X,FC,U,RE)
+
+C       EXTERNAL POT POTENTIAL FOR INTEGRAL
+        IMPLICIT NONE
+        DOUBLE PRECISION X,FC,U,A,Q,POT,HERM,RE
+        INTEGER I,J
+
+        A = (FC*U)**0.25
+        Q = A*(X-RE)
+
+        EXT = HERM(I,Q)*POT(X)*HERM(J,Q)
+
+        RETURN
+        END
+
+        DOUBLE PRECISION FUNCTION MORSE(I,J,X,FC,DE,U)
+
+C       MORESE POTENTIAL
+
+        IMPLICIT NONE
+        DOUBLE PRECISION X,FC,DE,U,A,Q,A2,HERM
+        INTEGER I,J
+
+        A = (FC*U)**0.25
+        Q = A*X
+        A2 = SQRT(FC/(2*DE))
+
+        MORSE = HERM(I,Q)*((DE*(1-EXP(-A*X))**2))*HERM(J,Q)
+
+        RETURN
+        END
+
+
+        DOUBLE PRECISION FUNCTION HARM(I,J,X,FC,U)
+
+C       HARMONIC POTENTIAL
+
+        IMPLICIT NONE
+        DOUBLE PRECISION X,FC,U,A,HERM,Q
+        INTEGER I,J
+
+        A = (FC*U)**0.25
+        Q = A*X
+
+        HARM = 0.5*FC*(X**2)*HERM(I,Q)*HERM(J,Q)
+        RETURN
+        END
+
+        SUBROUTINE KINETIC(NBASIS,RE,FC,U,NQP,X,W,K)
+
+C       FILLS IN KINETIC ENERGY MATRIX. ALL PARAMATERS ALREADY 
+C       DECLARED IN MAIN ROUTINE. IN FUTURE WILL NEED TO BE EXTENDED
+C       TO INCLUDE MORSE SECOND DERIVATIVES.
+
+        IMPLICIT NONE
+        DOUBLE PRECISION RE,FC,U,W(NQP),X(NQP),K(NBASIS,NBASIS),
+     1  SUMS,FUNK,NORMI,NORMJ,PI,A,Q,HERM,HERM1,HERM2
+        INTEGER NQP,NBASIS,I,J,II
+
+        PI = ACOS(-1.D0)
+
+        A = (FC*U)**0.25
+        
+        DO I = 1, NBASIS
+          DO J = 1, NBASIS
+
+            SUMS = 0.D0
+            DO II = 1, NQP
+              Q = A*(X(II)-RE)
+              SUMS = SUMS + W(II)*HERM(I-1,Q)*
+     1  ((A**2)*HERM2(J-1,Q) - 2*(A**3)*(X(II)-RE)*HERM1(J-1,Q)
+     1  - (A**2)*HERM(J-1,Q) +(A**4)*HERM(J-1,Q)*(X(II)-RE)**2)
+            END DO
+
+            NORMI =  SQRT(((FC**0.25)*(U**0.25))/
+     1  ( (SQRT(PI))*(2**(I-1))*GAMMA(I*1.d0)) )
+
+           NORMJ =  SQRT(((FC**0.25)*(U**0.25))/
+     1  ( (SQRT(PI))*(2**(J-1))*GAMMA(J*1.d0)) )
+
+
+           K(I,J) = -(1/(2*U))*NORMI*NORMJ*SUMS
+
+          END DO
+        END DO
+
+        RETURN
+        END
+
+        DOUBLE PRECISION FUNCTION HERM1(J,Q)
+
+C       FIRSE DERIVATIVE OF HERMITE POLYNOMIALS 
+        IMPLICIT NONE
+        DOUBLE PRECISION Q,HERM
+        INTEGER J
+
+        IF(J.EQ.0) THEN
+        HERM1 = 0.D0
+        ELSE
+        HERM1 = 2*J*HERM(J-1,Q) 
+        END IF
+
+        RETURN
+        END
+
+        DOUBLE PRECISION FUNCTION HERM2(J,Q)
+
+C       SECOND DERIVATIVE OF HERMITE POLYNOMIALS
+        IMPLICIT NONE
+        DOUBLE PRECISION Q,HERM
+        INTEGER J
+
+        IF(J.EQ.0.OR.J.EQ.1) THEN
+        HERM2 = 0.D0
+        ELSE 
+        HERM2 = 8*(0.5*(J**2 - J))*HERM(J-2,Q)
+        END IF
+
+        RETURN
+        END
+
+        DOUBLE PRECISION FUNCTION HERM(I,Y)
+
+C       HERMITE POLYNOMIAL GENERATOR
+        IMPLICIT NONE
+        DOUBLE PRECISION Y,SUMS,A,B,C,D
+        INTEGER I,L,J
+
+        IF (MOD(I,2).EQ.0) THEN
+        SUMS = 0.D0
+        DO J = 0, I/2
+        A = (-1.D0)**(0.5D0*I - J)
+        B = GAMMA(2.D0*J + 1.D0)
+        C = GAMMA(I/2.D0 - J +1.D0)
+        D = (2.D0*Y)**(2.D0*J)
+        SUMS = SUMS + (A*D)/(B*C)
+        END DO
+        HERM = GAMMA(I+1.d0)*SUMS
+
+        ELSE IF(MOD(I,2).NE.0) THEN
+
+        SUMS = 0.D0
+        DO J = 0, (I-1)/2
+        A = (-1.D0)**(0.50D0*(I-1.D0) -J)
+        B = GAMMA(2.D0*J +2.D0)
+        C = GAMMA( 0.5d0*(I -1) - J + 1)
+        D = (2.D0*Y)**(2.D0*J +1)
+        SUMS = SUMS + (A*D)/(B*C)
+        END DO
+        HERM = GAMMA(I+1.0)*SUMS
+
+        END IF
+
+        RETURN
+        END
+
