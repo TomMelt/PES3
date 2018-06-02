@@ -8,8 +8,8 @@ import pes
 def pesWrapper(R1, R2, R3):
     """Fortran function pes.pes3 needs conversion from mEh to Eh
     R1 -- distance between BC (diatom)
-    R2 -- distance between
-    R3 -- distance between
+    R2 -- distance between AB
+    R3 -- distance between AC
     """
     return pes.pes3(R2, R3, R1)/1000.
 
@@ -23,10 +23,11 @@ def diatomPEC(R1):
 def potential(R1, R2, R3):
     """Interaction potential as a function of the three internuclear distances
     R1 -- distance between BC (diatom)
-    R2 -- distance between
-    R3 -- distance between
+    R2 -- distance between AB
+    R3 -- distance between AC
     """
-    V = pesWrapper(R1, R2, R3) - diatomPEC(R1)
+#    V = pesWrapper(R1, R2, R3) - diatomPEC(R1)
+    V = pesWrapper(R1, R2, R3)
     return V
 
 

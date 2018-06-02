@@ -1,6 +1,7 @@
 from initialize import rovibrationalEnergy
 from mpl_toolkits.mplot3d import Axes3D # noqa
 from numeric import potential, diatomPEC
+from propagation import assignClassical
 from transform import getPropCoords, getParticleCoords, internuclear
 import constants as c
 import matplotlib.pyplot as plt
@@ -96,6 +97,13 @@ def plotKE(data):
     ax.legend([r'$R_{BC}$', r'$R_{AB}$', r'$R_{AC}$'])
     plt.show()
 
+    ax = fig.add_subplot(224)
+    ax.set_xlabel('time (a.u.)')
+    ax.set_ylabel(r'$V$ (a.u.)')
+    ax.plot(data[:, 0], R3, '-r')
+    ax.plot(data[:, 0], potential(R1, R2, R3), '-k')
+    ax.legend([r'$V{(R1, R2, R3}$'])
+
     return
 
 
@@ -163,10 +171,46 @@ def plot3Dtrace(data):
     x1 = np.array(x1)
     x2 = np.array(x2)
     x3 = np.array(x3)
-    print(x1)
     ax.plot(x1[:, 0], x1[:, 1], x1[:, 2], '-r')
     ax.plot(x2[:, 0], x2[:, 1], x2[:, 2], '-b')
     ax.plot(x3[:, 0], x3[:, 1], x3[:, 2], '-k')
+    plt.show()
+
+    return
+
+
+def plotClassical(data):
+
+    fig = plt.figure()
+
+    R1, R2, R3 = [], [], []
+    Ec, lc = [], []
+
+    t = data[:, 0]
+
+    for row in data:
+        r, p, R, P = getPropCoords(row[1:-1])
+        r1, r2, r3 = internuclear(r, R)
+        R1.append(r1)
+        R2.append(r2)
+        R3.append(r3)
+
+        assignment = assignClassical(r=r, R=R, p=p, P=P)
+        lc.append(assignment["lc"])
+        Ec.append(assignment["Ec"])
+
+    ax = fig.add_subplot(121)
+    ax.set_xlabel('time (a.u.)')
+    ax.set_ylabel(r'$P$ (a.u.)')
+    ax.plot(t, Ec, '-k')
+    ax.legend([r'$E_{c} + V$'])
+    plt.show()
+
+    ax = fig.add_subplot(122)
+    ax.set_xlabel('time (a.u.)')
+    ax.set_ylabel(r'$R$ (a.u.)')
+    ax.plot(t, lc, '-k')
+    ax.legend([r'$L_{c}$'])
     plt.show()
 
     return

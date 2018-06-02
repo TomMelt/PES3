@@ -106,7 +106,7 @@ def initialiseDiatomic(v, J, rand):
     return ri, pi
 
 
-def initialiseScattering(rand, v, J, epsilon):
+def initialiseScattering(rand, v, J, epsilon, bmax):
     """return initial conditions for the scattering particle
     rand -- random number generator
     epsilon -- scattering energy in the C.o.M (of the system)
@@ -122,7 +122,7 @@ def initialiseScattering(rand, v, J, epsilon):
     rho = c.R0 + rand.pop()*np.linalg.norm(Pi)*tau/c.MU
 
     # scattering parameter
-    b = np.sqrt(rand.pop())*c.bmax
+    b = np.sqrt(rand.pop())*bmax
 
     X = b
     Y = 0.
@@ -132,7 +132,7 @@ def initialiseScattering(rand, v, J, epsilon):
     return Ri, Pi
 
 
-def getInitialConditions(seed, trajID, v, J, epsilon):
+def getInitialConditions(seed, trajID, v, J, epsilon, bmax):
     """return initial conditions for the system
     v -- vibrational quantum number
     J -- rotational quantum number
@@ -142,6 +142,6 @@ def getInitialConditions(seed, trajID, v, J, epsilon):
     rand = set_rand(seed, trajID)
 
     ri, pi = initialiseDiatomic(v, J, rand)
-    Ri, Pi = initialiseScattering(rand, v, J, epsilon)
+    Ri, Pi = initialiseScattering(rand, v, J, epsilon, bmax)
 
     return ri, pi, Ri, Pi

@@ -16,7 +16,8 @@ def getPropCoords(coordinates):
 
 
 def getParticleCoords(r, p, R, P):
-    # get lab frame coordinates
+    # spatial coords are relative to the diatomic C.o.M
+    # momenta are relative to the system C.o.M
 
     # centre of mass coordinates
     # r1 = -c.m3/c.Mt*R - c.mu/c.m1*r

@@ -13,17 +13,14 @@ MU = m3*(m1+m2)/Mt
 R0 = 50.
 
 # cutoff distance
-Rcut = 15.
-
-# scattering range max
-bmax = 2.
+Rcut = 80.
 
 # RK4 parameters
 rtol = 1e-06
 atol = 1e-07
 maxstep = 100.
 ts = 0.
-tf = 1E5
+tf = 1E6
 
 # conversion
 eV = 27.211396

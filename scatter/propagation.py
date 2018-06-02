@@ -1,14 +1,14 @@
-from transform import distanceFromCoM, getParticleCoords
+from initialize import getInitialConditions
 from transform import getPropCoords, internuclear
 import constants as c
-from initialize import getInitialConditions
+from classify import assignQuantum, assignClassical
 import numeric as num
 import numpy as np
 import scipy.integrate as odeint
+import xarray as xr
 
 
 # TODO:
-# - add quantum classification after end of each trajectory
 # - add/fix tests
 # - bin minimum distance between atoms??
 
@@ -27,16 +27,47 @@ import scipy.integrate as odeint
 #   Jost W. (Ed.), Phys. chem., 6a, Academic Press, New York (1974)
 #   ch. 4
 # ----------------------------------------------------------------------------
-def runTrajectory(seed, trajID, v, J, epsilon, returnTraj=False):
-    ri, pi, Ri, Pi = getInitialConditions(seed, trajID, v, J, epsilon)
-    return propagate(ri, pi, Ri, Pi, returnTraj)
+def runTrajectory(seed, trajID, v, J, epsilon, bmax, returnTraj=False):
+    ri, pi, Ri, Pi = getInitialConditions(seed, trajID, v, J, epsilon, bmax)
+    if returnTraj:
+        return propagate(ri, pi, Ri, Pi, returnTraj)
+    result = propagate(ri, pi, Ri, Pi, returnTraj)
+    if result['fail']:
+        print(f'seed:{seed}, trajID:{trajID}, v:{v}, J:{J}, epsilon:{epsilon}')
+
+    cmp2 = ['x', 'y', 'z']
+    cmp1 = ['i', 'f']
+
+    ds = xr.Dataset(
+        data_vars={
+            'r': (['cmp1', 'cmp2'], [ri, result['r']]),
+            'p': (['cmp1', 'cmp2'], [pi, result['p']]),
+            'R': (['cmp1', 'cmp2'], [Ri, result['R']]),
+            'P': (['cmp1', 'cmp2'], [Pi, result['P']]),
+            'tf':  result['tf'],
+#            'bmax':  [bmax],
+            'maxErr':  result['maxErr'],
+            'countstep':  result['countstep'],
+            'maxstep':  result['maxstep'],
+            'converge':  result['converge'],
+            'fail':  result['fail'],
+            'l':  result['l'],
+            'n':  result['n'],
+            'case': result['case']
+        },
+        coords={
+            'cmp2': cmp2,
+            'cmp1': cmp1,
+        }
+    )
+    return ds
 
 
 def isConverged(dist):
     """Return True if trajectory is converged
     dist -- distance between particle and C.o.M of the other two
     """
-    c1 = dist > c.R0
+    c1 = dist > c.Rcut
     return c1
 
 
@@ -61,9 +92,10 @@ def propagate(ri, pi, Ri, Pi, returnTraj=False):
     # array to store trajectories
     trajectory = []
     trajectory.append([stepper.t] + stepper.y.tolist() + [H])
-    dist = 0.
     maxstep, maxErr = 0., 0.
+    Rmax = 0.
     countstep = 0
+    failed = False
 
     # propragate Hamilton's eqn's
     while stepper.t < c.tf:
@@ -73,14 +105,8 @@ def propagate(ri, pi, Ri, Pi, returnTraj=False):
 
             r, p, R, P = getPropCoords(stepper.y)
             R1, R2, R3 = internuclear(r, R)
-            r1, r2, r3, p1, p2, p3 = getParticleCoords(r, p, R, P)
 
-            if R1 == np.max([R1, R2, R3]):
-                dist = distanceFromCoM(c.m2, c.m3, r2, r3, r1)
-            if R2 == np.max([R1, R2, R3]):
-                dist = distanceFromCoM(c.m1, c.m3, r1, r3, r2)
-            if R3 == np.max([R1, R2, R3]):
-                dist = distanceFromCoM(c.m1, c.m2, r1, r2, r3)
+            Rmax = np.max([R1, R2, R3])
 
             trajectory.append([stepper.t] + stepper.y.tolist() + [H])
 
@@ -90,18 +116,34 @@ def propagate(ri, pi, Ri, Pi, returnTraj=False):
                     )
             countstep = countstep + 1
 
-            if isConverged(dist):
-                tf = stepper.t
+            if isConverged(Rmax):
                 break
 
             H = num.Hamiltonian(r, p, R, P)
         except RuntimeError as e:
             print(e)
+            failed = True
             break
-    trajectory = np.array(trajectory)
 
     if returnTraj:
+        trajectory = np.array(trajectory)
         return trajectory
     else:
-        return tuple(ri) + tuple(pi) + tuple(Ri) + tuple(Pi) + tuple(r) + tuple(p) + tuple(R) + tuple(P) + tuple([tf, maxErr, countstep, maxstep])
-        # return ri, pi, Ri, Pi, r, p, R, P, tf, maxErr, countstep, maxstep
+        assignment = assignClassical(r=r, p=p, R=R, P=P)
+        nq, lq = assignQuantum(Ec=assignment["Ec"], lc=assignment["lc"])
+        assignment["n"] = nq
+        assignment["l"] = lq
+        names = [
+                    'r', 'p', 'R', 'P',
+                    'tf', 'maxErr', 'countstep', 'maxstep',
+                    'converge', 'fail',
+                    "n", "l", "case",
+                ]
+        objects = [
+                    r, p, R, P,
+                    stepper.t, maxErr, countstep, maxstep,
+                    isConverged(Rmax), failed,
+                    assignment["n"], assignment["l"], assignment["case"],
+                ]
+        result = dict(zip(names, objects))
+        return result

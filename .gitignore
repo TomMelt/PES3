@@ -5,6 +5,9 @@ __pycache__/
 # ignore vim swap files
 *.swp
 
+#netcdf data files
+*.h5
+
 #ignore csv files
 *.csv
 

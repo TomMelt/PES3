@@ -10,6 +10,8 @@ Source code description:
 
 Use ```f2py``` to convert fortran code to python module using:
 
+    module unload compilers/intel/2017/update1
+    module load compilers/gnu/4.9.2
     f2py -c --fcompiler=gnu95 -m pes PES3.f H2+pbar-bpm-pot-nn.f
 
 After compilation/conversion move the ```.so``` module
