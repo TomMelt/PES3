@@ -45,7 +45,7 @@ def runTrajectory(seed, trajID, v, J, epsilon, bmax, returnTraj=False):
             'R': (['cmp1', 'cmp2'], [Ri, result['R']]),
             'P': (['cmp1', 'cmp2'], [Pi, result['P']]),
             'tf':  result['tf'],
-#            'bmax':  [bmax],
+            'bmax':  [bmax],
             'maxErr':  result['maxErr'],
             'countstep':  result['countstep'],
             'maxstep':  result['maxstep'],
