@@ -85,15 +85,15 @@ def plotKE(data):
     ax = fig.add_subplot(222)
     ax.set_xlabel('time (a.u.)')
     ax.set_ylabel(r'$E$ (a.u.)')
-    ax.plot(data[:, 0], H, '-g')
+    ax.plot(data[:, 0], H, '.g')
     ax.legend([r'$H_{system}$'])
 
     ax = fig.add_subplot(223)
     ax.set_xlabel('time (a.u.)')
     ax.set_ylabel(r'$R$ (a.u.)')
-    ax.plot(data[:, 0], R1, '-k')
-    ax.plot(data[:, 0], R2, '-b')
-    ax.plot(data[:, 0], R3, '-r')
+    ax.plot(data[:, 0], R1, '.k')
+    ax.plot(data[:, 0], R2, '.b')
+    ax.plot(data[:, 0], R3, '.r')
     ax.legend([r'$R_{BC}$', r'$R_{AB}$', r'$R_{AC}$'])
     plt.show()
 
@@ -201,9 +201,9 @@ def plotClassical(data):
 
     ax = fig.add_subplot(121)
     ax.set_xlabel('time (a.u.)')
-    ax.set_ylabel(r'$P$ (a.u.)')
+    ax.set_ylabel(r'$E_c$ (a.u.)')
     ax.plot(t, Ec, '-k')
-    ax.legend([r'$E_{c} + V$'])
+    ax.legend([r'$E_{c}$'])
     plt.show()
 
     ax = fig.add_subplot(122)

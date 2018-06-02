@@ -107,6 +107,12 @@ def propagate(ri, pi, Ri, Pi, returnTraj=False):
 
             Rmax = np.max([R1, R2, R3])
 
+            # force small step for close-encounters
+#            if Rmax < 10.:
+#                stepper.max_step = 1e-1
+#            else:
+#                stepper.max_step = c.maxstep
+
             trajectory.append([stepper.t] + stepper.y.tolist() + [H])
 
             maxstep = np.max([stepper.step_size, maxstep])

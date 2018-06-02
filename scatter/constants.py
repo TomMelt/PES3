@@ -25,6 +25,10 @@ tf = 1E6
 # conversion
 eV = 27.211396
 
+# numerical differentiation
+dtol = 1e-05
+dmethod = "stencil"
+
 # H2+ constants
 Re = 1.989465870
 rovib = np.array(
