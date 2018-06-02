@@ -1,4 +1,4 @@
-from numeric import potential
+from numeric import diatomPEC
 from transform import internuclear
 import constants as c
 import numpy as np
@@ -13,26 +13,26 @@ def assignClassical(r, p, R, P):
 
     assignment = {}
     mu = 0.
+    Ec = 0.
 
     if R1 == Rmin:
         mu = c.mu
         r_rel = r
         v_rel = p/c.mu
         assignment["case"] = 3
+        Ec = 0.5*mu*v_rel@v_rel + diatomPEC(R1)
     if R2 == Rmin:
         mu = c.m1*c.m3/(c.m1 + c.m3)
         r_rel = R + c.mu/c.m1*r
         v_rel = P/c.MU + p/c.m1
         assignment["case"] = 1
+        Ec = 0.5*mu*v_rel@v_rel - 1./R2
     if R3 == Rmin:
         mu = c.m2*c.m3/(c.m2 + c.m3)
         r_rel = R - c.mu/c.m2*r
         v_rel = P/c.MU - p/c.m2
         assignment["case"] = 1
-
-    Ec = 0.5*mu*v_rel@v_rel + potential(R1, R2, R3)
-
-#    print(R1, R2, R3, Ec)
+        Ec = 0.5*mu*v_rel@v_rel - 1./R3
 
     if Ec > 0.:
         assignment["Ec"] = np.NAN
@@ -41,9 +41,6 @@ def assignClassical(r, p, R, P):
     else:
         assignment["Ec"] = Ec
         assignment["lc"] = c.mu*np.linalg.norm(np.cross(r_rel, v_rel))
-
-#    Ec2 = 0.5*mu1*v2@v2 - 1./d2
-#    Ec3 = 0.5*mu2*v3@v3 - 1./d3
 
     return assignment
 

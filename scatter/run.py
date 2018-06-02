@@ -21,13 +21,13 @@ for i in range(N):
         ('J', [0]),
         ('v', [0]),
         ('epsilon', [epsilon[i]]),
-        ('trajID', range(1000)),
+        ('trajID', range(500)),
         ('bmax', [bmax[i]]),
     ]
 
     combo.append(combos)
 
-    c = h.Crop(name='run'+str(i), batchsize=20)
+    c = h.Crop(name='run'+str(i), batchsize=10)
 
     c.sow_combos(combo[i])
 
