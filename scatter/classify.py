@@ -50,7 +50,7 @@ def assignQuantum(Ec, lc):
     if Ec is np.NAN:
         return np.NAN, np.NAN
 
-    nc = np.sqrt(c.m3/(2.*np.abs(Ec)))
+    nc = np.sqrt(c.mu/(2.*np.abs(Ec)))
     nq = 0
     for n in range(1, 500):
         nl = np.power((n-1)*(n-0.5)*n, 1./3.)

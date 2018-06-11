@@ -15,3 +15,9 @@ Prerequisites
 * ```numpy```
 * ```random```
 * ```scipy```
+
+TODO:
+* check error in H relative to scattering energy (comes from IF switch)
+    - run PES_fix.f to check different sols
+* check PEC goes to zero at infinity (used in classify.py)
+* fix nquantum to the correct reduced mass
