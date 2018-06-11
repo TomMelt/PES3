@@ -1,10 +1,10 @@
-from numeric import diatomPEC
-import constants as c
+from .numeric import diatomPEC
+from . import constants as c
 import numpy as np
 import random as rnd
 import scipy.integrate as integrate
 import scipy.optimize as opt
-import transform
+from . import transform
 
 
 def set_rand(seed, trajID):

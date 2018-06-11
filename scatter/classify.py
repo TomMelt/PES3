@@ -1,6 +1,6 @@
-from numeric import diatomPEC
-from transform import internuclear
-import constants as c
+from . import constants as c
+from .numeric import diatomPEC
+from .transform import internuclear
 import numpy as np
 
 
@@ -50,9 +50,11 @@ def assignQuantum(Ec, lc):
     if Ec is np.NAN:
         return np.NAN, np.NAN
 
+    # NOT GENERAL
+    # need to make this general for any masses m1, m2 and m3
     nc = np.sqrt(c.mu/(2.*np.abs(Ec)))
     nq = 0
-    for n in range(1, 500):
+    for n in range(1, 1000):
         nl = np.power((n-1)*(n-0.5)*n, 1./3.)
         nh = np.power((n+1)*(n+0.5)*n, 1./3.)
         if nc >= nl and nc < nh:
@@ -60,7 +62,7 @@ def assignQuantum(Ec, lc):
             break
 
     lq = 0
-    for l in range(500):
+    for l in range(1000):
         ll = l
         lh = (l+1)
         if nq/nc*lc > ll and nq/nc*lc <= lh:

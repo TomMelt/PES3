@@ -1,7 +1,7 @@
-from transform import getPropCoords, internuclear
-import constants as c
+from .transform import getPropCoords, internuclear
+from . import constants as c
 import numpy as np
-import pes
+from . import pes
 
 
 @np.vectorize

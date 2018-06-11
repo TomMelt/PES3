@@ -1,9 +1,9 @@
-from initialize import rovibrationalEnergy
+from .initialize import rovibrationalEnergy
 from mpl_toolkits.mplot3d import Axes3D # noqa
-from numeric import potential, diatomPEC
-from propagation import assignClassical
-from transform import getPropCoords, getParticleCoords, internuclear
-import constants as c
+from .numeric import potential, diatomPEC
+from .propagation import assignClassical
+from .transform import getPropCoords, getParticleCoords, internuclear
+from . import constants as c
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.interpolate as itp

@@ -9,9 +9,9 @@ r = xyzpy.Runner(
 
 h = xyzpy.Harvester(r, data_name='data.h5')
 
-N=10
-epsilon = np.round(np.linspace(0.1, 2.0, num=N), 2)
-bmax = np.linspace(10, 3, num=N)
+N = 28
+epsilon = np.round(np.linspace(0.1, 2.7, num=N), 2)
+bmax = np.round(np.linspace(10, 3, num=N), 1)
 
 combo = []
 
@@ -21,14 +21,16 @@ for i in range(N):
         ('J', [0]),
         ('v', [0]),
         ('epsilon', [epsilon[i]]),
-        ('trajID', range(500)),
+        ('trajID', range(4000)),
         ('bmax', [bmax[i]]),
     ]
 
-    combo.append(combos)
+    c = h.Crop(name='run'+str(i), batchsize=40)
 
-    c = h.Crop(name='run'+str(i), batchsize=10)
+    c.sow_combos(combos)
 
-    c.sow_combos(combo[i])
-
-    c.qsub_grow(minutes=5, gigabytes=0.25, launcher="/home/ucaptme/miniconda3/bin/python3")
+    c.qsub_grow(
+            minutes=15,
+            gigabytes=1,
+            launcher="/home/ucaptme/miniconda3/bin/python3"
+            )

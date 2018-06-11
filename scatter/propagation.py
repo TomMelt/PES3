@@ -1,8 +1,8 @@
-from initialize import getInitialConditions
-from transform import getPropCoords, internuclear
-import constants as c
-from classify import assignQuantum, assignClassical
-import numeric as num
+from .classify import assignQuantum, assignClassical
+from .initialize import getInitialConditions
+from .transform import getPropCoords, internuclear
+from . import constants as c
+from . import numeric as num
 import numpy as np
 import scipy.integrate as odeint
 import xarray as xr

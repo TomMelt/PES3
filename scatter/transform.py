@@ -1,6 +1,6 @@
 from numpy import cos, sin
 from numpy.linalg import norm
-import constants as c
+from . import constants as c
 import numpy as np
 
 

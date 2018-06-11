@@ -26,7 +26,7 @@ tf = 1E6
 eV = 27.211396
 
 # numerical differentiation
-dtol = 1e-05
+dtol = 1e-08
 dmethod = "stencil"
 
 # H2+ constants
