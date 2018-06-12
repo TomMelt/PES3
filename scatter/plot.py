@@ -100,7 +100,6 @@ def plotKE(data):
     ax = fig.add_subplot(224)
     ax.set_xlabel('time (a.u.)')
     ax.set_ylabel(r'$V$ (a.u.)')
-    ax.plot(data[:, 0], R3, '-r')
     ax.plot(data[:, 0], potential(R1, R2, R3), '-k')
     ax.legend([r'$V{(R1, R2, R3}$'])
 

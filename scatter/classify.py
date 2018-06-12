@@ -20,7 +20,7 @@ def assignClassical(r, p, R, P):
         r_rel = r
         v_rel = p/c.mu
         assignment["case"] = 3
-        Ec = 0.5*mu*v_rel@v_rel + diatomPEC(R1)
+        Ec = 0.5*mu*v_rel@v_rel + (diatomPEC(R1) - diatomPEC(1000.))
     if R2 == Rmin:
         mu = c.m1*c.m3/(c.m1 + c.m3)
         r_rel = R + c.mu/c.m1*r

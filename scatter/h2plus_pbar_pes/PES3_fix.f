@@ -11,6 +11,11 @@ c       FOR CALCULATING H2+ PEC
 
         ANS = PEC(R3)
 
+C       FOR CLOSE INTERACTION
+        ELSE IF(R1.LT.10.d0.AND.R2.LT.10.d0.AND.R3.LT.10.d0) THEN
+
+        ANS = VSR(R1,R2,R3)
+
         ELSE IF(R3.LE.R1.AND.R3.LE.R2) THEN
 C       THIS IS H2+-PBAR TYPE GEOMETRY
 
@@ -32,12 +37,6 @@ C       OTHERWISE PN-H GEOMETRY
         ANS = (1.D0-SC2(R1,R2,R3))*VSR(R1,R2,R3) +
      1        SC2(R1,R2,R3)*VLR2(R1,R2,R3)
         
-
-C       FOR CLOSE INTERACTION
-        ELSE IF(R1.LT.5d0.AND.R2.LT.5d0.AND.R3.LT.5d0) THEN
-
-        ANS = VSR(R1,R2,R3)
-
 
         END IF
 
