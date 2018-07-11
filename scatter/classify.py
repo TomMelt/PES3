@@ -5,8 +5,15 @@ import numpy as np
 
 
 def assignClassical(r, p, R, P):
+    """Returns a dictionary containing the classical kinetic energy "Ec", the
+    angular momentum "lc" and an identifier "case" which is 1, 2 or 3 for the
+    final state being H2+, pbar-H or dissociation.
+    r -- C.o.M position for diatom (BC)
+    p -- C.o.M conjugate momentum for diatom (BC)
+    R -- C.o.M position for scattering particle and diatom (BC)
+    P -- C.o.M conjugate momentum for scattering particle and diatom (BC)
+    """
 
-    # relative distances of anti-proton w.r.t. proton
     R1, R2, R3 = internuclear(r, R)
 
     Rmin = np.min([R1, R2, R3])
@@ -46,6 +53,12 @@ def assignClassical(r, p, R, P):
 
 
 def assignQuantum(Ec, lc):
+    """Assign the quantum numbers "nq" and "lq" based on the classical kinetic
+    energy "Ec" and the classical angular momentum "lc". Returns a tuple
+    (nq, lq).
+    Ec- Classical kinetic energy
+    lc- Classical angular momentum
+    """
 
     if Ec is np.NAN:
         return np.NAN, np.NAN

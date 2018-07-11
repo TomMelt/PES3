@@ -8,8 +8,8 @@ from . import transform
 
 
 def set_rand(seed, trajID):
-    """Return num=c.numRandom random numbers. Each time a random number is
-    required it can be obtained from the list of length num using .pop().
+    """Return c.numRandom random numbers as a list. Each time a random number
+    is required it can be obtained from the list of length num using .pop().
     This is to protect against the case where two independent trajectories,
     i.e., with different trajID's, use the same random numbers.
     seed -- any positive integer (see python random for more info)
@@ -36,7 +36,7 @@ def roots(v, J):
 
 def vibrationalPeriod(v, J):
     """calculate vibrational period of diatom in initial state (v, J)
-    using quadrature
+    using quadrature.
     see p. 513 Truhlar D.G., Muckerman J.T. (1979)
     "Reactive Scattering Cross Sections III: Quasiclassical and
     Semiclassical Methods"
@@ -109,7 +109,10 @@ def initialiseDiatomic(v, J, rand):
 def initialiseScattering(rand, v, J, epsilon, bmax):
     """return initial conditions for the scattering particle
     rand -- random number generator
+    v -- vibrational quantum number
+    J -- rotational quantum number
     epsilon -- scattering energy in the C.o.M (of the system)
+    bmax -- maximum value of the scattering parameter
     """
 
     PX = 0.
@@ -134,9 +137,12 @@ def initialiseScattering(rand, v, J, epsilon, bmax):
 
 def getInitialConditions(seed, trajID, v, J, epsilon, bmax):
     """return initial conditions for the system
+    seed -- any positive integer (see python random for more info)
+    trajID -- any positive integer (limited only by python random)
     v -- vibrational quantum number
     J -- rotational quantum number
     epsilon -- scattering energy in the C.o.M (of the system)
+    bmax -- maximum value of the scattering parameter
     """
 
     rand = set_rand(seed, trajID)

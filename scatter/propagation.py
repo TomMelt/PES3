@@ -8,30 +8,25 @@ import scipy.integrate as odeint
 import xarray as xr
 
 
-# TODO:
-# - add/fix tests
-# - bin minimum distance between atoms??
-
-# NOTE:
-# ----------------------------------------------------------------------------
-# - initially program was also built in spherical coords but this does not
-#   work well with RK4 prop because angles can be arbitrarily large
-#   and there are singularities in the equations of motion (1/sin^2(phi)) etc.
-# ----------------------------------------------------------------------------
-# - "one of the necessary conditions for the proper description in terms of a
-#   classical traj. is that changes in the De Broglie wavelength of the
-#   appropriate vars. be small over the scale determined by the spatial
-#   variation of the wavefunction"
-#   And "epsilon*b*b = l_c^2/2Mu"
-#   E.E.Nikitin
-#   Jost W. (Ed.), Phys. chem., 6a, Academic Press, New York (1974)
-#   ch. 4
-# ----------------------------------------------------------------------------
 def runTrajectory(seed, trajID, v, J, epsilon, bmax, returnTraj=False):
+    """Run a single trajectory and return the results as an xarray dataset.
+    seed -- any positive integer (see python random for more info)
+    trajID -- any positive integer (limited only by python random)
+    v -- vibrational quantum number
+    J -- rotational quantum number
+    epsilon -- scattering energy in the C.o.M (of the system)
+    bmax -- maximum value of the scattering parameter
+    returnTraj -- set True to return the trajectory coordinates for each
+                  time step as an array
+    """
+
     ri, pi, Ri, Pi = getInitialConditions(seed, trajID, v, J, epsilon, bmax)
+
     if returnTraj:
         return propagate(ri, pi, Ri, Pi, returnTraj)
+
     result = propagate(ri, pi, Ri, Pi, returnTraj)
+
     if result['fail']:
         print(f'seed:{seed}, trajID:{trajID}, v:{v}, J:{J}, epsilon:{epsilon}')
 
@@ -73,6 +68,11 @@ def isConverged(dist):
 def propagate(ri, pi, Ri, Pi, returnTraj=False):
     """Propagate trajectory from a given intial condition based on Hamilton's
     Equations.
+    ri -- Initial C.o.M position for diatom (BC)
+    pi -- Initial C.o.M conjugate momentum for diatom (BC)
+    Ri -- Initial C.o.M position for scattering particle and diatom (BC)
+    Pi -- Initial C.o.M conjugate momentum for scattering particle and diatom
+          (BC)
     returnTraj -- flag to return trajectory for plotting (default False)
     """
 

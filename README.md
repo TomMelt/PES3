@@ -17,10 +17,17 @@ Prerequisites
 * ```scipy```
 
 TODO:
-* check error in H relative to scattering energy (comes from IF switch)
-    - run PES_fix.f to check different sols
-    - error appears to be on close encounter of all three particles
+====
+* write tests.
+* change transform.getParticleCoords() to be in lab frame coordinates
+
+NOTE:
+=====
+* initially program was also built in spherical coords
+    - this does not work well with RK4 prop because angles can be arbitrarily large and;
+    - there are singularities in the equations of motion (1/sin^2(phi)) etc.
+* Error in the Hamiltonian appears to come from close encounter of all three particles
     - tried using just short range potential < 5 a.u. but this was not successful
-* check PEC goes to zero at infinity (used in classify.py)
-    - changed diatom classify to correct asymptotic value of diatomPEC
-* fix nquantum to the correct reduced mass
+* E.E.Nikitin Jost W. (Ed.), Phys. chem., 6a, Academic Press, New York (1974) ch. 4
+    - "one of the necessary conditions for the proper description in terms of a classical traj. is that changes in the De Broglie wavelength of the appropriate vars. be small over the scale determined by the spatial variation of the wavefunction"
+    - "epsilon*b*b = l_c^2/2Mu" 

@@ -47,10 +47,10 @@ def Hamiltonian(r, p, R, P):
 
 def derivative(func, x, method="stencil", h="1e-06"):
     """Compute numerical derivative of function "func"
-    func -- function or lambda function of variable "x"
-    x -- position at which derivative is computed
+    func   -- function or lambda function of variable "x"
+    x      -- position at which derivative is computed
     method -- "euler" or "stencil" (5 point)
-    h -- delta used in derivative (don't make too small i.e., < 1e-08)
+    h      -- delta used in derivative (don't make too small i.e., < 1e-08)
     """
 
     if method.upper() == "EULER":
@@ -61,6 +61,11 @@ def derivative(func, x, method="stencil", h="1e-06"):
 
 
 def numericDerivatives(r, R):
+    """Calculate the numeric derivatives "pdot" and "Pdot" for the equations of
+    motion. Returns a tuple containing the two np.arrays.
+    r -- C.o.M position for diatom (BC)
+    R -- C.o.M position for scattering particle and diatom (BC)
+    """
     R1, R2, R3 = internuclear(r, R)
 
     dVdR1 = derivative(
@@ -94,7 +99,12 @@ def numericDerivatives(r, R):
 
 
 def equation_of_motion(t, coordinates):
-    # current jacobi coordinates
+    """Return the equations of motion for the system.
+    coordinates -- current jacobi coordinates r, p, R and P concatenated as one
+                   np.array.
+    t           -- time of current step
+    """
+
     r, p, R, P = getPropCoords(coordinates)
 
     # first derivatives w.r.t. t
