@@ -20,7 +20,8 @@ Prerequisites
 
 TODO:
 ====
-* write tests.
+* tests:
+    * Add test to check transform.getParticleCoords()
 * change transform.getParticleCoords() to be in lab frame coordinates
 * Check how starting position affects the scattering velocities/ distro of nq
     * Could calculate the integral of energy gained by moving through 1/r pot.

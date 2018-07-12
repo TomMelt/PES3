@@ -9,6 +9,14 @@ m3 = 1.00794/0.00054858
 Mt = m1+m2+m3
 MU = m3*(m1+m2)/Mt
 
+# no of particles
+N = 3
+# no of dimensions
+# this is not general and is due to the C.o.M transformatios)
+# each particle has 6 generalized coords (x, y, z, px, py, pz)
+# one particle is removed via transformations
+dim = (N-1)*6
+
 # initial separation of scattering particle R(t=0)
 R0 = 50.
 
