@@ -3,6 +3,8 @@ PES Scatter
 
 3-body classical scattering code on a quantum PES.
 
+![Schematic](img/Schematic.png)
+
 Please clone the repo:
 
     git clone git@github.com:TomMelt/PES3.git
@@ -20,6 +22,10 @@ TODO:
 ====
 * write tests.
 * change transform.getParticleCoords() to be in lab frame coordinates
+* Check how starting position affects the scattering velocities/ distro of nq
+    * Could calculate the integral of energy gained by moving through 1/r pot.
+* plot 3d surface of PES
+* draw diagram of coords
 
 NOTE:
 =====
