@@ -20,8 +20,11 @@ Prerequisites
 
 TODO:
 ====
-* tests:
-    * Add test to check transform.getParticleCoords()
+* still need to write tests for:
+    * ```classify.py```
+    * ```initialize.py```
+    * ```numeric.py```
+    * ```propagation.py```
 * change transform.getParticleCoords() to be in lab frame coordinates
 * Check how starting position affects the scattering velocities/ distro of nq
     * Could calculate the integral of energy gained by moving through 1/r pot.
