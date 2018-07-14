@@ -4,13 +4,40 @@ import numpy as np
 from . import pes
 
 
-@np.vectorize
 def pesWrapper(R1, R2, R3):
-    """Fortran function pes.pes3 needs conversion from mEh to Eh
+    """A wrapper function around the pes.so object. It also converts from mEh
+    to Eh. As well as ensuring the coordinates are parsed in the correct order.
+    Returns the value of the potential energy surface at the point R1, R2, R3.
     R1 -- distance between BC (diatom)
     R2 -- distance between AB
     R3 -- distance between AC
     """
+    if any(x < 0. for x in [R1, R2, R3]):
+        msg = "R1, R2 and R3 must be postive floats.\n"
+        msg += "R1={0}\n"
+        msg += "R2={1}\n"
+        msg += "R3={2}"
+        raise ValueError(
+                msg.format(
+                    R1,
+                    R2,
+                    R3,
+                    )
+                )
+
+    if any(isinstance(x, float) is False for x in [R1, R2, R3]):
+        msg = "R1, R2 and R3 must be floats.\n"
+        msg += "R1={0}\n"
+        msg += "R2={1}\n"
+        msg += "R3={2}"
+        raise TypeError(
+                msg.format(
+                    type(R1),
+                    type(R2),
+                    type(R3),
+                    )
+                )
+
     return pes.pes3(R2, R3, R1)/1000.
 
 
@@ -18,6 +45,24 @@ def diatomPEC(R1):
     """diatomic PEC for molecule BC
     R1 -- distance between BC (diatom)
     """
+    if R1 < 0.:
+        msg = "R1 must be a postive float.\n"
+        msg += "R1={0}"
+        raise ValueError(
+                msg.format(
+                    R1,
+                    )
+                )
+
+    if isinstance(R1, float) is False:
+        msg = "R1 must be a float.\n"
+        msg += "R1={0}"
+        raise TypeError(
+                msg.format(
+                    type(R1),
+                    )
+                )
+
     R = 1000.
     return pesWrapper(R1, R, R)
 
@@ -28,12 +73,62 @@ def potential(R1, R2, R3):
     R2 -- distance between AB
     R3 -- distance between AC
     """
+    if any(x < 0. for x in [R1, R2, R3]):
+        msg = "R1, R2 and R3 must be postive floats.\n"
+        msg += "R1={0}\n"
+        msg += "R2={1}\n"
+        msg += "R3={2}"
+        raise ValueError(
+                msg.format(
+                    R1,
+                    R2,
+                    R3,
+                    )
+                )
+
+    if any(isinstance(x, float) is False for x in [R1, R2, R3]):
+        msg = "R1, R2 and R3 must be floats.\n"
+        msg += "R1={0}\n"
+        msg += "R2={1}\n"
+        msg += "R3={2}"
+        raise TypeError(
+                msg.format(
+                    type(R1),
+                    type(R2),
+                    type(R3),
+                    )
+                )
+
     V = pesWrapper(R1, R2, R3)
     return V
 
 
 def Hamiltonian(r, p, R, P):
-    """Calculate the total energy of the system
+    """Return the total energy of the system
+    r -- C.o.M position for diatom (BC)
+    p -- C.o.M conjugate momentum for diatom (BC)
+    R -- C.o.M position for scattering particle and diatom (BC)
+    P -- C.o.M conjugate momentum for scattering particle and diatom (BC)
+    """
+    for vector in [r, p, R, P]:
+        if len(vector) == 3:
+            continue
+        else:
+            msg = "input vectors must have exactly 3 dimensions"
+            msg += "\n"
+            msg += "r={0}\n"
+            msg += "p={1}\n"
+            msg += "R={2}\n"
+            msg += "P={3}"
+            raise IndexError(msg.format(r, p, R, P))
+
+    R1, R2, R3 = internuclear(r, R)
+    H = p@p/(2.*c.mu) + P@P/(2.*c.MU) + potential(R1, R2, R3)
+    return H
+
+
+def Lagrangian(r, p, R, P):
+    """Return the Lagrangian of the system
     r -- C.o.M position for diatom (BC)
     p -- C.o.M conjugate momentum for diatom (BC)
     R -- C.o.M position for scattering particle and diatom (BC)
@@ -41,12 +136,12 @@ def Hamiltonian(r, p, R, P):
     """
 
     R1, R2, R3 = internuclear(r, R)
-    H = p@p/(2.*c.mu) + P@P/(2.*c.MU) + potential(R1, R2, R3)
-    return H
+    L = p@p/(2.*c.mu) + P@P/(2.*c.MU) - potential(R1, R2, R3)
+    return L
 
 
-def derivative(func, x, method="stencil", h="1e-06"):
-    """Compute numerical derivative of function "func"
+def derivative(func, x, method="stencil", h=1e-06):
+    """Compute numerical derivative of function "func" at position x
     func   -- function or lambda function of variable "x"
     x      -- position at which derivative is computed
     method -- "euler" or "stencil" (5 point)

@@ -20,6 +20,10 @@ Prerequisites
 
 TODO:
 ====
+* Take a look at the classical action (zeroth order phase)
+    * if it varies slowly it indicates classical nature
+    * if it varies rapidly calculate the phase and interferance for quantum number n
+    * classical action of whole system or of pbar?
 * still need to write tests for:
     * ```classify.py```
     * ```initialize.py```
