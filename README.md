@@ -9,17 +9,29 @@ Please clone the repo:
 
     git clone git@github.com:TomMelt/PES3.git
 
+Installation
+============
+
 To install on local machine:
 
     pip install -U -e .
 
-Prerequisites
+Core Dependencies
+=============
+These package must be installed for ```scatter``` to run properly.
+
 * ```numpy```
 * ```random```
 * ```scipy```
 
-TODO:
-====
+Plotting Dependencies
+=============
+Only required for the plotting functions.
+
+* ```matplotlib```
+
+To Do
+=====
 * Take a look at the classical action (zeroth order phase)
     * if it varies slowly it indicates classical nature
     * if it varies rapidly calculate the phase and interferance for quantum number n
@@ -27,15 +39,13 @@ TODO:
 * still need to write tests for:
     * ```classify.py```
     * ```initialize.py```
-    * ```numeric.py```
     * ```propagation.py```
 * change transform.getParticleCoords() to be in lab frame coordinates
 * Check how starting position affects the scattering velocities/ distro of nq
     * Could calculate the integral of energy gained by moving through 1/r pot.
-* plot 3d surface of PES
 * draw diagram of coords
 
-NOTE:
+Notes
 =====
 * initially program was also built in spherical coords
     - this does not work well with RK4 prop because angles can be arbitrarily large and;

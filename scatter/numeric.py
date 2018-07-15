@@ -161,6 +161,16 @@ def numericDerivatives(r, R):
     r -- C.o.M position for diatom (BC)
     R -- C.o.M position for scattering particle and diatom (BC)
     """
+
+    for vector in [r, R]:
+        if len(vector) == 3:
+            continue
+        else:
+            msg = "input vectors must have exactly 3 dimensions\n"
+            msg += "r={0}\n"
+            msg += "R={1}"
+            raise IndexError(msg.format(r, R))
+
     R1, R2, R3 = internuclear(r, R)
 
     dVdR1 = derivative(
@@ -199,6 +209,18 @@ def equation_of_motion(t, coordinates):
                    np.array.
     t           -- time of current step
     """
+
+    if not isinstance(t, float):
+        raise TypeError(
+                "time t must be a float. t={0}".format(type(t))
+                )
+    if len(coordinates) != c.dim:
+        raise IndexError(
+                "coordinates is len={0} but it should be len={1}".format(
+                    len(coordinates),
+                    c.dim,
+                    )
+                )
 
     r, p, R, P = getPropCoords(coordinates)
 

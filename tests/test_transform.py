@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
-from scatter import (getPropCoords, getParticleCoords, sphericalToCart,
-                        internuclear)
+from scatter import getPropCoords, getParticleCoords, internuclear
+from scatter.transform import sphericalToCart
 
 
 def test_getPropCoords():

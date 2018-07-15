@@ -7,49 +7,62 @@ from . import constants as c
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.interpolate as itp
+from matplotlib import cm
 
 
-def func(x, y, R1):
+@np.vectorize
+def vec_potential(x, y, R1):
     R2 = np.sqrt(x*x+y*y+1.-2*y)
     R3 = np.sqrt(x*x+y*y+1.+2*y)
-    return potential(R1, R2, R3)
+    ans = potential(R1, R2, R3)
+    if ans < -3.:
+        return -3.
+    else:
+        return potential(R1, R2, R3)
+
+
+@np.vectorize
+def vec_pec(R1):
+    return diatomPEC(R1)
 
 
 def testPotential():
+
+    # Make data.
+    X = np.linspace(-3, 3, num=100)
+    Y = X
+    X, Y = np.meshgrid(X, Y)
+    Z = vec_potential(X, Y, 2.)
+
+    # plot 3d PES surface
     fig = plt.figure()
     ax = fig.gca(projection='3d')
 
-    # Make data.
-    X = np.linspace(-3, 3, num=50)
-    Y = np.linspace(-3, 3, num=50)
-    X, Y = np.meshgrid(X, Y)
-    Z = func(X, Y, 2.)
-
-    # Plot the surface.
-    ax.plot_wireframe(X, Y, Z, rstride=1, cstride=1)
-
-    ax.set_zlim([-3., 1.])
-
+    surf = ax.plot_wireframe(X, Y, Z, rstride=2, cstride=2, clip_on=True)
+    ax.set_xlabel('x')
+    ax.set_ylabel('y')
+    ax.set_zlabel('V(R1, R2, R3)')
+    ax.set_xlim([-3., 3.])
+    ax.set_ylim([-3., 3.])
+    ax.set_zlim([-3., 0.])
     plt.show()
 
+
+    fig = plt.figure()
     X = np.linspace(0.5, 15., num=100)
 
-    plt.plot(X, diatomPEC(X) - diatomPEC(2.), '-')
+    plt.plot(X, vec_pec(X) - vec_pec(2.), '-')
     for v in range(5):
         plt.plot(
                 [1., 4.],
                 [rovibrationalEnergy(v, 0), rovibrationalEnergy(v, 0)],
                 '-k'
                 )
-    ax.set_ylim([0, 2])
+        plt.ylim(-0.01, 0.2)
     plt.show()
 
-    R1 = np.linspace(1.0, 20., num=100)
-    R2 = R1
 
-    plt.plot(X, potential(2., R1, R2), '-')
-
-    plt.show()
+testPotential()
 
 
 def plotKE(data):

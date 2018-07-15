@@ -10,20 +10,19 @@ def getPropCoords(coordinates):
     coordinates -- current jacobi coordinates r, p, R and P concatenated as one
                    np.array.
     """
-    if len(coordinates) == c.dim:
-        r = coordinates[:3]
-        p = coordinates[3:6]
-        R = coordinates[6:9]
-        P = coordinates[9:]
-        return r, p, R, P
-
-    else:
+    if len(coordinates) != c.dim:
         raise IndexError(
                 "coordinates is len={0} but it should be len={1}".format(
                     len(coordinates),
                     c.dim,
                     )
                 )
+
+    r = coordinates[:3]
+    p = coordinates[3:6]
+    R = coordinates[6:9]
+    P = coordinates[9:]
+    return r, p, R, P
 
 
 def getParticleCoords(r, p, R, P):
