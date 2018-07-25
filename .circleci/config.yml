@@ -12,6 +12,8 @@ jobs:
                 command: |
                     pip install --user -r requirements.txt
                     export PATH=$PATH:~/.local/bin
+                    f2py -c --fcompiler=gnu95 -m pes PES3.f  H2+pbar-bpm-pot-nn.f
+                    mv pes.c* ../pes.so
                     pytest tests
             - save_cache:
                 key: deps1-{{ .Branch }}-{{ checksum "requirements.txt"}}
