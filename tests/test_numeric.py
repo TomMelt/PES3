@@ -64,7 +64,7 @@ def test_Hamiltonian():
         Hamiltonian(r=rfail, p=p, R=R, P=P)
 
 
-def test_numeric():
+def test_derivative():
     for method in ["stencil", "euler"]:
         func = lambda x: x*x
         ans = derivative(func=func, x=3., method=method)

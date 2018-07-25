@@ -44,6 +44,8 @@ To Do
 * Check how starting position affects the scattering velocities/ distro of nq
     * Could calculate the integral of energy gained by moving through 1/r pot.
 * draw diagram of coords
+* remove grid from PES plot
+* add Cohen and Sakimoto data to cross-section plot
 
 Notes
 =====

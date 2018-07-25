@@ -62,9 +62,6 @@ def testPotential():
     plt.show()
 
 
-testPotential()
-
-
 def plotKE(data):
 
     fig = plt.figure()
@@ -87,34 +84,35 @@ def plotKE(data):
     KE2 = np.array(KE2)
     H = np.array(H)
 
-    ax = fig.add_subplot(221)
-    ax.set_xlabel('time (a.u.)')
-    ax.set_ylabel(r'$E$ (a.u.)')
-    ax.plot(data[:, 0], KE1, '-k')
-    ax.plot(data[:, 0], KE2, '-r')
-    ax.plot(data[:, 0], H, '-g')
-    ax.legend([r'$E_k^1$', r'$E_k^2$', r'$H_{system}$'])
+#    ax = fig.add_subplot(221)
+#    ax.set_xlabel('time (a.u.)')
+#    ax.set_ylabel(r'$E$ (a.u.)')
+#    ax.plot(data[:, 0], KE1, '-k')
+#    ax.plot(data[:, 0], KE2, '-r')
+#    ax.plot(data[:, 0], H, '-g')
+#    ax.legend([r'$E_k^1$', r'$E_k^2$', r'$H_{system}$'])
 
-    ax = fig.add_subplot(222)
-    ax.set_xlabel('time (a.u.)')
-    ax.set_ylabel(r'$E$ (a.u.)')
-    ax.plot(data[:, 0], H, '.g')
-    ax.legend([r'$H_{system}$'])
+#    ax = fig.add_subplot(222)
+#    ax.set_xlabel('time (a.u.)')
+#    ax.set_ylabel(r'$E$ (a.u.)')
+#    ax.plot(data[:, 0], H, '-g')
+#    ax.legend([r'$H_{system}$'])
 
-    ax = fig.add_subplot(223)
+#    ax = fig.add_subplot(223)
+    ax = fig.add_subplot(111)
     ax.set_xlabel('time (a.u.)')
     ax.set_ylabel(r'$R$ (a.u.)')
-    ax.plot(data[:, 0], R1, '.k')
-    ax.plot(data[:, 0], R2, '.b')
-    ax.plot(data[:, 0], R3, '.r')
+    ax.plot(data[:, 0], R1, '-', color='xkcd:purple')
+    ax.plot(data[:, 0], R2, '-', color='xkcd:orange')
+    ax.plot(data[:, 0], R3, '-', color='xkcd:green')
     ax.legend([r'$R_{BC}$', r'$R_{AB}$', r'$R_{AC}$'])
     plt.show()
 
-    ax = fig.add_subplot(224)
-    ax.set_xlabel('time (a.u.)')
-    ax.set_ylabel(r'$V$ (a.u.)')
-    ax.plot(data[:, 0], potential(R1, R2, R3), '-k')
-    ax.legend([r'$V{(R1, R2, R3}$'])
+#    ax = fig.add_subplot(224)
+#    ax.set_xlabel('time (a.u.)')
+#    ax.set_ylabel(r'$V$ (a.u.)')
+#    ax.plot(data[:, 0], vec_potential(R1, R2, R3), '-k')
+#    ax.legend([r'$V{(R1, R2, R3}$'])
 
     return
 
@@ -220,7 +218,7 @@ def plotClassical(data):
 
     ax = fig.add_subplot(122)
     ax.set_xlabel('time (a.u.)')
-    ax.set_ylabel(r'$R$ (a.u.)')
+    ax.set_ylabel(r'$L_{c}$ (a.u.)')
     ax.plot(t, lc, '-k')
     ax.legend([r'$L_{c}$'])
     plt.show()
