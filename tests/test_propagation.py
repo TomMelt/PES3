@@ -54,4 +54,4 @@ def test_runTrajectory():
         }
     )
 
-    xr.testing.assert_allclose(ds, ds_record, rtol=1e-5)
+    xr.testing.assert_allclose(ds, ds_record, rtol=1e-4)
