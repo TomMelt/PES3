@@ -77,6 +77,7 @@ def propagate(ri, pi, Ri, Pi, returnTraj=False):
     """
 
     initialConditions = np.concatenate([ri, pi, Ri, Pi], axis=0)
+    epsilon = Pi@Pi/(2.*c.MU)
 
     # initialise stepping object
     stepper = odeint.RK45(
@@ -117,7 +118,7 @@ def propagate(ri, pi, Ri, Pi, returnTraj=False):
 
             maxstep = np.max([stepper.step_size, maxstep])
             maxErr = np.max(
-                    [np.abs((H - num.Hamiltonian(r, p, R, P)/H)), maxErr]
+                    [np.abs((H - num.Hamiltonian(r, p, R, P)/epsilon)), maxErr]
                     )
             countstep = countstep + 1
 

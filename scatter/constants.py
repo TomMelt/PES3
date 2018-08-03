@@ -1,11 +1,10 @@
 import numpy as np
 
-# mass constants
-# currently set for Hydrogen (Triatomic)
-m1 = 1.00794/0.00054858
-m2 = 1.00794/0.00054858
+# mass constants from CODATA
+m1 = 1836.15267389
+m2 = 1836.15267389
 mu = m1*m2/(m1+m2)
-m3 = 1.00794/0.00054858
+m3 = 1836.15267389
 Mt = m1+m2+m3
 MU = m3*(m1+m2)/Mt
 
