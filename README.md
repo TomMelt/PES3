@@ -1,4 +1,4 @@
-PES Scatter
+Scatter PES
 ===========
 
 3-body classical scattering code on a quantum PES.
@@ -7,7 +7,7 @@ PES Scatter
 
 Please clone the repo:
 
-    git clone git@github.com:TomMelt/PES3.git
+    git clone git@github.com:TomMelt/ScatterPES.git
 
 Installation
 ============
@@ -21,8 +21,8 @@ Core Dependencies
 These package must be installed for ```scatter``` to run properly.
 
 * ```numpy```
-* ```random```
 * ```scipy```
+* ```xarray```
 
 Plotting Dependencies
 =============
@@ -40,12 +40,8 @@ To Do
     * ```classify.py```
     * ```initialize.py```
     * ```propagation.py```
-* change transform.getParticleCoords() to be in lab frame coordinates
 * Check how starting position affects the scattering velocities/ distro of nq
     * Could calculate the integral of energy gained by moving through 1/r pot.
-* draw diagram of coords
-* remove grid from PES plot
-* add Cohen and Sakimoto data to cross-section plot
 
 Notes
 =====
