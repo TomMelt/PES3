@@ -1,5 +1,5 @@
 pytest==3.3.2
-py==1.5.2
+py==1.10.1
 setuptools==39.0.1
 wheel==0.31.0
 numpy>=1.15.0
